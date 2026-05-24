@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="UNO Odontologia Integral">
+	<rect width="64" height="64" rx="14" fill="#ffffff"/>
+	<path fill="#58b957" d="M13 16c2.5 0 4.5 2 4.5 4.5v16.2c0 3.5 2.6 6.3 6 6.3s6-2.8 6-6.3V20.5c0-2.5 2-4.5 4.5-4.5s4.5 2 4.5 4.5v16.2C38.5 45.2 32 52 23.5 52S8.5 45.2 8.5 36.7V20.5c0-2.5 2-4.5 4.5-4.5Z"/>
+	<circle cx="46.5" cy="34" r="15" fill="#58b957"/>
+	<path fill="#ffffff" d="M36.8 35.7h19.4c-.9 5-4.6 8.4-9.7 8.4s-8.8-3.4-9.7-8.4Z"/>
+	<path fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="3" d="M40.5 29.2c.8-1.6 2.7-1.6 3.5 0M49 29.2c.8-1.6 2.7-1.6 3.5 0"/>
+</svg>

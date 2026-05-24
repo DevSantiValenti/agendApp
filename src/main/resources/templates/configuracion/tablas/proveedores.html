@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Proveedores</title><link rel="stylesheet" th:href="@{/css/app.css}">
+	<link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+	<script defer th:src="@{/js/app.js}"></script></head>
+<body>
+<div class="app"><nav class="side"><div class="brand"><span class="brand-name">Agenda Uno</span><span class="brand-user" th:text="${usuarioActualNombre}">Administracion</span></div><a th:href="@{/turnos}">📅</a><a th:href="@{/pacientes}">👥</a><a class="active" th:href="@{/configuracion}">⚙</a><a class="logout-link" th:href="@{/logout}" title="Cerrar sesión">↪</a></nav>
+<main class="main"><header class="page-head"><div class="breadcrumbs"><a th:href="@{/configuracion}">Configuración</a><span>›</span><a th:href="@{/configuracion/tablas/profesionales}">Tablas</a><span>›</span><strong>Proveedores</strong></div></header>
+<section class="content">
+	<form class="form-panel" th:action="@{/configuracion/tablas/proveedores}" method="post" th:object="${proveedor}">
+		<div class="form-grid"><label>Proveedor <input th:field="*{nombre}" required></label><label>Teléfono <input th:field="*{telefono}"></label><label>Email <input th:field="*{email}"></label><label>Dirección <input th:field="*{direccion}"></label><label>CUIT <input th:field="*{cuit}"></label><label>Saldo inicial <input type="number" step="0.01" th:field="*{saldoInicial}"></label><label class="full">Observaciones <textarea th:field="*{observaciones}"></textarea></label><label><span><input type="checkbox" th:field="*{habilitado}"> Habilitado</span></label></div>
+		<div class="actions"><button class="btn primary">+ Nuevo proveedor</button></div>
+	</form>
+	<form class="toolbar" method="get"><input class="search" name="q" th:value="${q}" placeholder="Buscar proveedor..."><button class="btn outline">Buscar</button></form>
+	<div class="table-wrap"><table><thead><tr><th></th><th>Proveedor</th><th>Datos adicionales</th><th>Saldo inicial</th><th>Observaciones</th><th>Habilitado</th><th></th></tr></thead><tbody>
+		<tr th:each="p : ${proveedores}"><td>&vellip;</td><td><strong th:text="${p.nombre}"></strong></td><td><span th:text="${p.telefono ?: '-'}"></span><br><span class="muted" th:text="${p.email ?: '-'}"></span></td><td th:text="${p.saldoInicial}"></td><td th:text="${p.observaciones ?: '-'}"></td><td th:text="${p.habilitado ? '✓' : '⊘'}"></td><td><form th:action="@{/configuracion/tablas/proveedores/{id}/eliminar(id=${p.id})}" method="post"><button class="btn danger">Eliminar</button></form></td></tr>
+	</tbody></table></div>
+</section></main></div>
+</body></html>

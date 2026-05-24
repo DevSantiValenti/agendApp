@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Paciente | Agenda Uno</title>
+	<link rel="stylesheet" th:href="@{/css/app.css}">
+	<link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+	<script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+<div class="app">
+	<nav class="side">
+		<div class="brand"><span class="brand-name">Agenda Uno</span><span class="brand-user" th:text="${usuarioActualNombre}">Administracion</span></div>
+		<a th:href="@{/turnos}" title="Turnos">📅</a>
+		<a th:href="@{/pacientes}" class="active" title="Pacientes">👥</a>
+		<a th:href="@{/configuracion}" title="Configuración">⚙</a>
+	<a class="logout-link" th:href="@{/logout}" title="Cerrar sesión">↪</a></nav>
+	<main class="main">
+		<header class="page-head">
+			<div class="breadcrumbs"><a th:href="@{/pacientes}">Pacientes</a><span>›</span><strong th:text="${paciente.id == null ? 'Nuevo' : 'Modificar'}"></strong></div>
+		</header>
+		<section class="content">
+			<form class="form-panel" th:action="@{/pacientes}" th:object="${paciente}" method="post">
+				<input type="hidden" th:field="*{id}">
+				<h3>Datos del paciente</h3>
+				<div class="form-grid">
+					<label>Apellido y nombre <input th:field="*{nombreCompleto}"></label>
+					<label>Historia clínica <input th:field="*{historiaClinica}"></label>
+					<label>Tipo documento <input th:field="*{tipoDocumento}"></label>
+					<label>Documento <input th:field="*{documento}"></label>
+					<label>Fecha nacimiento <input type="date" th:field="*{fechaNacimiento}"></label>
+					<label>Sexo <input th:field="*{sexo}"></label>
+					<label>Alta <input type="date" th:field="*{fechaAlta}"></label>
+					<label>Última atención <input type="date" th:field="*{ultimaAtencion}"></label>
+					<label>Saldo acreedor <input type="number" step="0.01" th:field="*{saldoAcreedor}"></label>
+					<label>Fecha recitación <input type="date" th:field="*{fechaRecitacion}"></label>
+					<label class="full">Motivo recitación <input th:field="*{motivoRecitacion}"></label>
+				</div>
+				<h3>Datos afiliatorios</h3>
+				<div class="form-grid">
+					<label>Obra social
+						<select name="obraSocialId">
+							<option value="">Sin obra social</option>
+							<option th:each="os : ${obrasSociales}" th:value="${os.id}" th:text="${os.nombre}"
+								th:selected="${paciente.obraSocial != null and os.id == paciente.obraSocial.id}"></option>
+						</select>
+					</label>
+					<label>N° afiliado <input th:field="*{numeroAfiliado}"></label>
+					<label class="full">Condición <input th:field="*{condicionAfiliatoria}"></label>
+				</div>
+				<h3>Contacto y ubicación</h3>
+				<div class="form-grid">
+					<label>Celular <input th:field="*{telefonoCelular}"></label>
+					<label>Particular <input th:field="*{telefonoParticular}"></label>
+					<label>Oficina <input th:field="*{telefonoOficina}"></label>
+					<label>Email <input type="email" th:field="*{email}"></label>
+					<label>Domicilio <input th:field="*{domicilio}"></label>
+					<label>Localidad <input th:field="*{localidad}"></label>
+					<label>Provincia <input th:field="*{provincia}"></label>
+					<label>Ocupación <input th:field="*{ocupacion}"></label>
+				</div>
+				<h3>Facturación y antecedentes</h3>
+				<div class="form-grid">
+					<label>CUIT/CUIL <input th:field="*{cuitCuil}"></label>
+					<label>Condición fiscal <input th:field="*{condicionFiscal}"></label>
+					<label><span><input type="checkbox" th:field="*{hepatitis}"> Hepatitis</span></label>
+					<label><span><input type="checkbox" th:field="*{embarazo}"> Embarazo</span></label>
+					<label><span><input type="checkbox" th:field="*{diabetes}"> Diabetes</span></label>
+					<label><span><input type="checkbox" th:field="*{alergia}"> Alergia</span></label>
+					<label><span><input type="checkbox" th:field="*{cardiaco}"> Cardíaco</span></label>
+					<label><span><input type="checkbox" th:field="*{renal}"> Renal</span></label>
+					<label><span><input type="checkbox" th:field="*{hiv}"> HIV</span></label>
+					<label class="full">Observaciones <textarea th:field="*{observaciones}"></textarea></label>
+					<label class="full">Alerta <textarea th:field="*{alerta}"></textarea></label>
+				</div>
+				<div class="actions">
+					<a class="btn outline" th:href="@{/pacientes}">Cancelar</a>
+					<button class="btn primary" type="submit">Modificar todo</button>
+				</div>
+			</form>
+		</section>
+	</main>
+</div>
+</body>
+</html>

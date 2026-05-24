@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Usuarios | Agenda Uno</title>
+	<link rel="stylesheet" th:href="@{/css/app.css}">
+	<link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+	<script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+<div class="app">
+	<nav class="side">
+		<div class="brand"><span class="brand-name">Agenda Uno</span><span class="brand-user" th:text="${usuarioActualNombre}">Administracion</span></div>
+		<a th:href="@{/turnos}" title="Turnos">📅</a>
+		<a th:href="@{/pacientes}" title="Pacientes">👥</a>
+		<a class="active" th:href="@{/configuracion}" title="Configuración">⚙</a>
+	<a class="logout-link" th:href="@{/logout}" title="Cerrar sesión">↪</a></nav>
+	<main class="main">
+		<header class="page-head">
+			<div class="breadcrumbs"><a th:href="@{/configuracion}">Configuración</a><span>›</span><strong>Usuarios</strong></div>
+		</header>
+		<section class="content">
+			<p class="flash ok" th:if="${ok}" th:text="${ok}"></p>
+			<p class="flash error" th:if="${error}" th:text="${error}"></p>
+			<div style="display:flex; gap:20px">
+				<aside style="width:220px">
+					<div class="form-panel" style="padding:12px">
+						<strong>Tablas</strong>
+						<a class="menu-item" th:href="@{/configuracion/tablas/profesionales}">Profesionales</a>
+						<a class="menu-item" th:href="@{/configuracion/tablas/obras-sociales}">Obras sociales</a>
+						<a class="menu-item" th:href="@{/configuracion/tablas/laboratorios}">Laboratorios</a>
+						<a class="menu-item" th:href="@{/configuracion/tablas/especialidades}">Especialidades</a>
+						<a class="menu-item" th:href="@{/configuracion/tablas/feriados}">Feriados</a>
+						<a class="menu-item" th:href="@{/configuracion/tablas/proveedores}">Proveedores</a>
+						<a class="menu-item" th:href="@{/configuracion/usuarios}">Usuarios</a>
+					</div>
+				</aside>
+				<div style="flex:1; min-width:0">
+					<form class="form-panel" th:action="${editando} ? @{/configuracion/usuarios/{id}(id=${usuario.id})} : @{/configuracion/usuarios}" method="post" th:object="${usuario}">
+						<div class="form-grid">
+							<input type="hidden" th:field="*{id}">
+							<label>Nombre completo
+								<input th:field="*{nombreCompleto}" required>
+							</label>
+							<label>Nombre de usuario
+								<input th:field="*{nombreUsuario}" autocomplete="off" required>
+							</label>
+							<label><span th:text="${editando} ? 'Nueva contraseña (opcional)' : 'Contraseña'">Contraseña</span>
+								<input type="password" th:field="*{contrasena}" th:required="${!editando}">
+							</label>
+						</div>
+						<div class="actions">
+							<a th:if="${editando}" class="btn outline" th:href="@{/configuracion/usuarios}">Cancelar</a>
+							<button class="btn primary" type="submit" th:text="${editando} ? 'Guardar cambios' : 'Crear usuario'">Crear usuario</button>
+						</div>
+					</form>
+					<div class="table-wrap" style="margin-top:16px">
+						<table>
+							<thead><tr><th>Nombre completo</th><th>Nombre de usuario</th><th></th></tr></thead>
+							<tbody>
+							<tr th:each="u : ${usuarios}">
+								<td th:text="${u.nombreCompleto}"></td>
+								<td th:text="${u.nombreUsuario}"></td>
+								<td>
+									<div class="table-actions">
+										<a class="btn outline" th:href="@{/configuracion/usuarios/{id}/editar(id=${u.id})}">Editar</a>
+										<button class="btn danger" type="button"
+												data-open-delete-user
+												th:attr="data-action=@{/configuracion/usuarios/{id}/eliminar(id=${u.id})},data-name=${u.nombreCompleto ?: u.nombreUsuario}">
+											Eliminar
+										</button>
+									</div>
+								</td>
+							</tr>
+							<tr th:if="${#lists.isEmpty(usuarios)}">
+								<td colspan="3" class="muted">Todavía no hay usuarios creados.</td>
+							</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</section>
+	</main>
+</div>
+<div class="modal-backdrop" id="modalEliminarUsuario">
+	<div class="modal confirm-modal">
+		<div class="modal-head">
+			<h3>Eliminar usuario</h3>
+			<button class="icon-btn modal-close-flat" type="button" onclick="closeModal(this)">×</button>
+		</div>
+		<p>¿Seguro que querés eliminar a <strong data-delete-user-name>este usuario</strong>?</p>
+		<form method="post" data-delete-user-form>
+			<div class="actions confirm-actions">
+				<button class="btn outline" type="button" onclick="closeModal(this)">Cancelar</button>
+				<button class="btn danger" type="submit">Eliminar</button>
+			</div>
+		</form>
+	</div>
+</div>
+</body>
+</html>

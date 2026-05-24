@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Pacientes | Agenda Uno</title>
+	<link rel="stylesheet" th:href="@{/css/app.css}">
+	<link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+	<script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+<div class="app">
+	<nav class="side">
+		<div class="brand"><span class="brand-name">Agenda Uno</span><span class="brand-user" th:text="${usuarioActualNombre}">Administracion</span></div>
+		<a th:href="@{/turnos}" title="Turnos">📅</a>
+		<a th:href="@{/pacientes}" class="active" title="Pacientes">👥</a>
+		<a th:href="@{/configuracion}" title="Configuración">⚙</a>
+	<a class="logout-link" th:href="@{/logout}" title="Cerrar sesión">↪</a></nav>
+	<main class="main patient-page">
+		<header class="patient-topbar">
+			<div class="breadcrumbs">
+				<!-- <a class="icon-btn" th:href="@{/turnos}" title="Menú">☰</a> -->
+				<strong>Pacientes</strong>
+				<span>›</span>
+				<strong>Datos personales</strong>
+			</div>
+			<div class="patient-search-shell">
+				<input id="patientSearch" autocomplete="off" placeholder="Buscar por apellido y nombre">
+				<span class="patient-search-icon">⌕</span>
+				<div id="patientSearchResults" class="patient-search-results"></div>
+			</div>
+			<!-- <label class="patient-contained">
+				<input type="checkbox">
+				Que esté contenido
+			</label>
+			<button class="icon-btn" type="button" title="Filtros">☷</button>
+			<button class="icon-btn" type="button" title="Código QR">▦</button> -->
+			<a class="btn primary" th:href="@{/pacientes/nuevo}">Nuevo</a>
+		</header>
+
+		<section id="patientSummary" class="patient-summary-bar empty">
+			<div class="patient-summary-main">
+				<strong data-patient="nombreCompleto">Seleccioná un paciente</strong>
+				<span class="hc-pill" data-patient-hc></span>
+				<span class="patient-dot">•</span>
+				<strong data-patient-affiliation></strong>
+				<span class="patient-separator"></span>
+				<span class="muted">Ver datos de contacto</span>
+			</div>
+			<div class="patient-summary-actions">
+				<span class="summary-badge">Sin saldo: $ <span data-patient-balance>0,00</span></span>
+				<span class="summary-badge">Sin saldo: U$S 0</span>
+			</div>
+		</section>
+
+		<section class="patient-empty-state" id="patientEmptyState">
+			<div>
+				<h2>Buscá un paciente para ver su ficha</h2>
+				<p>Escribí al menos dos letras del apellido, nombre, documento o historia clínica.</p>
+			</div>
+		</section>
+
+		<section id="patientDetail" class="patient-detail-shell" hidden>
+			<div class="patient-card">
+				<h2>Datos del paciente</h2>
+				<p>Esta es la información básica acerca de tu paciente.</p>
+				<div class="patient-form-grid">
+					<label class="full">Apellido y Nombre <input data-patient="nombreCompleto" readonly></label>
+					<label>Documento <input data-patient="tipoDocumento" readonly></label>
+					<label>N° de Documento <input data-patient="documento" readonly></label>
+					<label>N° Historia clínica <input data-patient="historiaClinica" readonly></label>
+					<label>Fecha de nac. <input data-patient-date="fechaNacimiento" readonly></label>
+					<label>Fecha de alta <input data-patient-date="fechaAlta" readonly></label>
+					<label>Última atención <input data-patient-date="ultimaAtencion" readonly></label>
+					<label class="check-line"><span><input type="checkbox" data-patient-check="fechaRecitacion" disabled> Recitación</span></label>
+					<label>Fecha de recitación <input data-patient-date="fechaRecitacion" readonly placeholder="Seleccionar fecha"></label>
+					<label class="full">Motivo <textarea data-patient="motivoRecitacion" readonly></textarea></label>
+				</div>
+			</div>
+
+			<div class="patient-card">
+				<h2>Datos afiliatorios</h2>
+				<p>Acá vas a encontrar los datos sobre la obra social de tu paciente.</p>
+				<div class="patient-form-grid">
+					<label>Obra social <input data-patient="obraSocial" readonly></label>
+					<label>Plan <input data-patient="plan" readonly></label>
+					<label>Número de afiliado <input data-patient="numeroAfiliado" readonly></label>
+					<label>Condición <input data-patient="condicionAfiliatoria" readonly></label>
+					<label>CUIT/CUIL <input data-patient="cuitCuil" readonly></label>
+					<label>Condición fiscal <input data-patient="condicionFiscal" readonly></label>
+					<label class="check-line"><span><input type="checkbox" checked disabled> Es titular</span></label>
+					<label class="full alert-label">Alertas <textarea data-patient="alerta" readonly></textarea></label>
+				</div>
+			</div>
+
+			<div class="patient-card">
+				<h2>Contacto</h2>
+				<p>Teléfonos, email y domicilio.</p>
+				<div class="patient-form-grid">
+					<label>Teléfono celular <input data-patient="telefonoCelular" readonly></label>
+					<label>Teléfono particular <input data-patient="telefonoParticular" readonly></label>
+					<label>Teléfono oficina <input data-patient="telefonoOficina" readonly></label>
+					<label>Email <input data-patient="email" readonly></label>
+					<label>Domicilio <input data-patient="domicilio" readonly></label>
+					<label>Localidad <input data-patient="localidad" readonly></label>
+					<label>Provincia <input data-patient="provincia" readonly></label>
+					<label class="full">Observaciones <textarea data-patient="observaciones" readonly></textarea></label>
+				</div>
+			</div>
+
+			<div class="patient-card">
+				<h2>Antecedentes</h2>
+				<p>Antecedentes de enfermedades registrados.</p>
+				<div class="patient-antecedents">
+					<label><input type="checkbox" data-patient-bool="hepatitis" disabled> Hepatitis</label>
+					<label><input type="checkbox" data-patient-bool="embarazo" disabled> Embarazo</label>
+					<label><input type="checkbox" data-patient-bool="diabetes" disabled> Diabetes</label>
+					<label><input type="checkbox" data-patient-bool="alergia" disabled> Alergia</label>
+					<label><input type="checkbox" data-patient-bool="cardiaco" disabled> Cardíaco</label>
+					<label><input type="checkbox" data-patient-bool="renal" disabled> Renal</label>
+					<label><input type="checkbox" data-patient-bool="hiv" disabled> HIV</label>
+				</div>
+			</div>
+		</section>
+
+		<footer id="patientFooter" class="patient-footer" hidden>
+			<form id="patientDeleteForm" method="post">
+				<button class="btn outline danger-outline" type="submit">Eliminar paciente</button>
+			</form>
+			<a id="patientEditLink" class="btn primary" href="#">Guardar paciente</a>
+		</footer>
+	</main>
+</div>
+</body>
+</html>

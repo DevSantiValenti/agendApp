@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Profesional | Agenda Uno</title>
+	<link rel="stylesheet" th:href="@{/css/app.css}">
+	<link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+	<script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+<div class="app">
+	<nav class="side">
+		<div class="brand"><span class="brand-name">Agenda Uno</span><span class="brand-user" th:text="${usuarioActualNombre}">Administracion</span></div>
+		<a th:href="@{/turnos}" title="Turnos">📅</a>
+		<a th:href="@{/pacientes}" title="Pacientes">👥</a>
+		<a th:href="@{/configuracion}" class="active" title="Configuración">⚙</a>
+	<a class="logout-link" th:href="@{/logout}" title="Cerrar sesión">↪</a></nav>
+	<main class="main">
+		<header class="page-head">
+			<div class="breadcrumbs"><a th:href="@{/configuracion}">Configuración</a><span>›</span><a th:href="@{/configuracion/tablas/profesionales}">Tablas</a><span>›</span><strong>Datos del profesional</strong></div>
+		</header>
+		<section class="content">
+			<form class="form-panel" th:action="@{/profesionales}" th:object="${profesional}" method="post">
+				<input type="hidden" th:field="*{id}">
+				<div class="form-grid">
+					<label>Código * <input th:field="*{codigo}"></label>
+					<label>Trato ** <select th:field="*{trato}"><option value="Dr.">Dr.</option><option value="Dra.">Dra.</option><option value="Lic.">Lic.</option></select></label>
+					<label class="full">Apellido y Nombre * <input th:field="*{apellidoNombre}" required></label>
+					<label>Domicilio <input th:field="*{domicilio}"></label>
+					<label>Localidad <input th:field="*{localidad}"></label>
+					<label>Provincia <input th:field="*{provincia}"></label>
+					<label>Teléfono <input th:field="*{telefono}"></label>
+					<label>Email <input type="email" th:field="*{email}"></label>
+					<label>CUIT ** <input th:field="*{cuit}"></label>
+					<label>Condición fiscal <input th:field="*{condicionFiscal}"></label>
+					<label>Profesión ** <input th:field="*{profesion}"></label>
+					<label>Tipo de matrícula ** <input th:field="*{tipoMatricula}"></label>
+					<label>Jurisdicción ** <input th:field="*{jurisdiccion}"></label>
+					<label>Matrícula ** <input th:field="*{matricula}"></label>
+					<label class="full">Observaciones <textarea th:field="*{observaciones}"></textarea></label>
+					<label>Especialidades
+						<select name="especialidadIds" multiple>
+							<option th:each="esp : ${especialidades}" th:value="${esp.id}" th:text="${esp.nombre}"
+								th:selected="${profesional.especialidades.contains(esp)}"></option>
+						</select>
+					</label>
+					<label>Código liquidación para OSDE <input th:field="*{codigoLiquidacionOsde}"></label>
+					<label><span><input type="checkbox" th:field="*{habilitado}"> Profesional habilitado</span></label>
+					<label><span><input type="checkbox" th:field="*{agendaGuardia}"> Es una agenda de guardia</span></label>
+					<label class="full">Configuración de la firma ** <textarea th:field="*{configuracionFirma}"></textarea></label>
+				</div>
+				<h3>Horarios de trabajo</h3>
+				<div class="table-wrap" style="margin-top:12px">
+					<table style="min-width:720px">
+						<thead>
+						<tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Agenda online</th></tr>
+						</thead>
+						<tbody>
+						<tr th:each="horario, stat : *{horarios}">
+							<td>
+								<input type="hidden" th:field="*{horarios[__${stat.index}__].id}">
+								<input type="hidden" th:field="*{horarios[__${stat.index}__].dia}">
+								<strong th:text="${horario.dia}"></strong>
+							</td>
+							<td><input type="time" th:field="*{horarios[__${stat.index}__].horaDesde}"></td>
+							<td><input type="time" th:field="*{horarios[__${stat.index}__].horaHasta}"></td>
+							<td><input type="checkbox" th:field="*{horarios[__${stat.index}__].agendaOnline}"></td>
+						</tr>
+						</tbody>
+					</table>
+				</div>
+				<div class="actions">
+					<a class="btn outline" th:href="@{/configuracion/tablas/profesionales}">Cancelar</a>
+					<button class="btn primary" type="submit">Guardar profesional</button>
+				</div>
+			</form>
+		</section>
+	</main>
+</div>
+</body>
+</html>

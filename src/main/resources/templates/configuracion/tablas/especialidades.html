@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Especialidades</title><link rel="stylesheet" th:href="@{/css/app.css}">
+	<link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+	<script defer th:src="@{/js/app.js}"></script></head>
+<body>
+<div class="app"><nav class="side"><div class="brand"><span class="brand-name">Agenda Uno</span><span class="brand-user" th:text="${usuarioActualNombre}">Administracion</span></div><a th:href="@{/turnos}">📅</a><a th:href="@{/pacientes}">👥</a><a class="active" th:href="@{/configuracion}">⚙</a><a class="logout-link" th:href="@{/logout}" title="Cerrar sesión">↪</a></nav>
+<main class="main"><header class="page-head"><div class="breadcrumbs"><a th:href="@{/configuracion}">Configuración</a><span>›</span><a th:href="@{/configuracion/tablas/profesionales}">Tablas</a><span>›</span><strong>Especialidades</strong></div></header>
+<section class="content">
+	<form class="form-panel" th:action="@{/configuracion/tablas/especialidades}" method="post" th:object="${especialidad}">
+		<div class="form-grid"><label>Código <input th:field="*{codigo}"></label><label>Especialidad <input th:field="*{nombre}" required></label></div>
+		<div class="actions"><button class="btn primary">+ Nueva especialidad</button></div>
+	</form>
+	<form class="toolbar" method="get"><input class="search" name="q" th:value="${q}" placeholder="Buscar especialidad..."><button class="btn outline">Buscar</button></form>
+	<div class="table-wrap"><table><thead><tr><th></th><th>Código</th><th>Especialidad</th><th></th></tr></thead><tbody>
+		<tr th:each="esp : ${especialidades}"><td>&vellip;</td><td th:text="${esp.codigo}"></td><td th:text="${esp.nombre}"></td><td><form th:action="@{/configuracion/tablas/especialidades/{id}/eliminar(id=${esp.id})}" method="post"><button class="btn danger">Eliminar</button></form></td></tr>
+	</tbody></table></div>
+</section></main></div>
+</body></html>

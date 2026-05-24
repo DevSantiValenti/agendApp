@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Obras sociales</title><link rel="stylesheet" th:href="@{/css/app.css}">
+	<link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+	<script defer th:src="@{/js/app.js}"></script></head>
+<body>
+<div class="app"><nav class="side"><div class="brand"><span class="brand-name">Agenda Uno</span><span class="brand-user" th:text="${usuarioActualNombre}">Administracion</span></div><a th:href="@{/turnos}">📅</a><a th:href="@{/pacientes}">👥</a><a class="active" th:href="@{/configuracion}">⚙</a><a class="logout-link" th:href="@{/logout}" title="Cerrar sesión">↪</a></nav>
+<main class="main">
+	<header class="page-head"><div class="breadcrumbs"><a th:href="@{/configuracion}">Configuración</a><span>›</span><a th:href="@{/configuracion/tablas/profesionales}">Tablas</a><span>›</span><strong>Obras sociales</strong></div></header>
+	<section class="content">
+		<form class="form-panel" th:action="@{/configuracion/tablas/obras-sociales}" method="post" th:object="${obraSocial}">
+			<div class="form-grid">
+				<label>Código <input th:field="*{codigo}"></label><label>Nombre <input th:field="*{nombre}" required></label>
+				<label>Dirección <input th:field="*{direccion}"></label><label>Teléfono <input th:field="*{telefono}"></label>
+				<label>Email <input th:field="*{email}"></label><label>C.U.I.T. <input th:field="*{cuit}"></label>
+				<label class="full">Observaciones <textarea th:field="*{observaciones}"></textarea></label>
+				<label><span><input type="checkbox" th:field="*{habilitado}"> Habilitado</span></label>
+			</div>
+			<div class="actions"><button class="btn primary" type="submit">+ Nueva obra social</button></div>
+		</form>
+		<form class="toolbar" method="get"><input class="search" name="q" th:value="${q}" placeholder="Buscar obra social..."><button class="btn outline">Buscar</button></form>
+		<div class="table-wrap"><table><thead><tr><th></th><th>Obra social</th><th>Planes</th><th>Dirección</th><th>Contacto</th><th>C.U.I.T.</th><th>Observaciones</th><th>Habilitado</th><th></th></tr></thead>
+		<tbody>
+			<tr th:each="os : ${obrasSociales}">
+				<td>&vellip;</td><td><span class="code-pill" th:text="'Cód. ' + (${os.codigo} ?: '-')"></span> <strong th:text="${os.nombre}"></strong></td>
+				<td>
+					<div th:each="plan : ${os.planes}"><span class="code-pill" th:text="${plan.codigo ?: '-'}"></span> <span th:text="${plan.nombre}"></span></div>
+					<form th:action="@{/configuracion/tablas/obras-sociales/{id}/planes(id=${os.id})}" method="post" style="display:flex;gap:6px;margin-top:8px">
+						<input name="codigo" placeholder="Código"><input name="nombre" placeholder="Plan"><button class="btn outline" type="submit">Agregar</button>
+					</form>
+				</td>
+				<td th:text="${os.direccion ?: '-'}"></td><td><span th:text="${os.telefono ?: '-'}"></span><br><span class="muted" th:text="${os.email ?: '-'}"></span></td>
+				<td th:text="${os.cuit ?: '-'}"></td><td th:text="${os.observaciones ?: '-'}"></td><td th:text="${os.habilitado ? '✓' : '⊘'}"></td>
+				<td><form th:action="@{/configuracion/tablas/obras-sociales/{id}/eliminar(id=${os.id})}" method="post"><button class="btn danger">Eliminar</button></form></td>
+			</tr>
+		</tbody></table></div>
+	</section>
+</main></div>
+</body></html>

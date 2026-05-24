@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Turnos | Agenda Uno</title>
+	<link rel="stylesheet" th:href="@{/css/app.css}">
+	<link rel="icon" type="image/x-icon" th:href="@{/favicon.ico}">
+	<script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+<div class="app">
+	<nav class="side">
+		<div class="brand"><span class="brand-name">Agenda Uno</span><span class="brand-user" th:text="${usuarioActualNombre}">Administracion</span></div>
+		<a th:href="@{/turnos}" class="active" title="Turnos">📅</a>
+		<a th:href="@{/pacientes}" title="Pacientes">👥</a>
+		<a th:href="@{/configuracion}" title="Configuración">⚙</a>
+	<a class="logout-link" th:href="@{/logout}" title="Cerrar sesión">↪</a></nav>
+	<main class="main">
+		<div class="turnos-sticky-bars">
+			<form class="topbar" method="get" th:action="@{/turnos}">
+				<label class="date-display">
+					<span id="agendaDateText" th:text="${fechaTexto}">martes, 19 de mayo de 2026</span>
+					<input id="agendaDateInput" type="date" name="fecha" th:value="${fecha}" aria-label="Fecha">
+					<span class="date-icon">▣</span>
+				</label>
+				<button class="icon-btn" type="button" title="Información del profesional" data-open-profesional>⌚</button>
+				<select class="select-wide" name="profesionalId" onchange="this.form.submit()">
+					<option th:if="${#lists.isEmpty(profesionales)}" value="">Sin profesionales</option>
+					<option th:each="prof : ${profesionales}" th:value="${prof.id}" th:text="${prof.apellidoNombre}"
+						th:selected="${profesionalId != null and prof.id == profesionalId}"></option>
+				</select>
+				<select class="select-wide" name="especialidadId" onchange="this.form.submit()">
+					<option value="">Todas</option>
+					<option th:each="especialidad : ${especialidades}" th:value="${especialidad.id}" th:text="${especialidad.nombre}"
+						th:selected="${especialidadId != null and especialidad.id == especialidadId}"></option>
+				</select>
+			</form>
+
+			<div class="subbar">
+				<!-- <select style="max-width: 260px">
+					<option value="Diaria">Diaria</option>
+				</select> -->
+				<div class="day-tabs" id="agendaDayTabs">
+					<a th:href="@{/turnos(fecha=${hoy},profesionalId=${profesionalId},especialidadId=${especialidadId})}"
+						th:data-agenda-date="${hoy}"
+						th:classappend="${fecha.equals(hoy)} ? ' active' : ''">Hoy</a>
+					<a th:each="dia : ${diasSemana}"
+						th:href="@{/turnos(fecha=${dia.fecha()},profesionalId=${profesionalId},especialidadId=${especialidadId})}"
+						th:data-agenda-date="${dia.fecha()}"
+						th:text="${dia.etiqueta()}"
+						th:classappend="${dia.seleccionado()} ? ' selected' : ''"></a>
+				</div>
+				<label class="checkbox-line">
+					<input type="checkbox" checked>
+					<span>Mostrar solo prof./est. del día<br><span class="muted" style="font-weight:400">Muestra los habilitados el día elegido.</span></span>
+				</label>
+			</div>
+		</div>
+
+		<section class="agenda-shell">
+			<p class="flash ok" th:if="${ok}" th:text="${ok}"></p>
+			<p class="flash error" th:if="${error}" th:text="${error}"></p>
+			<div class="table-wrap">
+				<table>
+					<thead>
+					<tr>
+						<th style="width:80px">☷</th>
+						<th>Hora</th>
+						<th>Presentismo</th>
+						<th>Paciente</th>
+						<th>Obra social</th>
+						<th>Observación</th>
+						<th>Dado/Modificado</th>
+					</tr>
+					</thead>
+					<tbody id="agendaBody">
+					<tr th:each="slot : ${slots}"
+						th:with="bloqueado=${slot.turno() != null and slot.turno().presentismo.name() == 'CANCELADO' and slot.turno().paciente == null and slot.turno().observacion == 'NO CITAR ESTE TURNO'}"
+						th:classappend="${bloqueado} ? ' slot-blocked' : ''"
+						th:data-detail-turno-id="${slot.turno() != null ? slot.turno().id : ''}"
+						th:data-detail-fecha-iso="${fecha}"
+						th:data-detail-fecha="${#temporals.format(fecha, 'dd/MM/yyyy')}"
+						th:data-detail-hora="${#temporals.format(slot.hora(), 'HH:mm')}"
+						th:data-detail-profesional-id="${slot.turno() != null and slot.turno().profesional != null ? slot.turno().profesional.id : profesionalId}"
+						th:data-detail-profesional="${slot.turno() != null and slot.turno().profesional != null ? slot.turno().profesional.apellidoNombre : (profesionalSeleccionado != null ? profesionalSeleccionado.apellidoNombre : '')}"
+						th:data-detail-paciente-id="${slot.turno() != null and slot.turno().paciente != null ? slot.turno().paciente.id : ''}"
+						th:data-detail-paciente="${slot.turno() != null and slot.turno().paciente != null ? slot.turno().paciente.nombreCompleto : ''}"
+						th:data-detail-hc="${slot.turno() != null and slot.turno().paciente != null ? slot.turno().paciente.historiaClinica : ''}"
+						th:data-detail-presentismo="${slot.turno() != null ? slot.turno().presentismo.etiqueta : ''}"
+						th:data-detail-obra-social="${slot.turno() != null and slot.turno().obraSocial != null ? slot.turno().obraSocial.nombre : ''}"
+						th:data-detail-plan="${slot.turno() != null and slot.turno().plan != null ? slot.turno().plan.nombre : ''}"
+						th:data-detail-afiliado="${slot.turno() != null and slot.turno().paciente != null ? slot.turno().paciente.numeroAfiliado : ''}"
+						th:data-detail-telefono-celular="${slot.turno() != null and slot.turno().paciente != null ? slot.turno().paciente.telefonoCelular : ''}"
+						th:data-detail-telefono-particular="${slot.turno() != null and slot.turno().paciente != null ? slot.turno().paciente.telefonoParticular : ''}"
+						th:data-detail-telefono-oficina="${slot.turno() != null and slot.turno().paciente != null ? slot.turno().paciente.telefonoOficina : ''}"
+						th:data-detail-observacion="${slot.turno() != null ? slot.turno().observacion : ''}"
+						th:data-detail-modificado-por="${slot.turno() != null ? slot.turno().dadoModificadoPor : ''}"
+						th:data-detail-modificado-el="${slot.turno() != null and slot.turno().fechaModificacion != null ? #temporals.format(slot.turno().fechaModificacion, 'dd/MM/yyyy HH:mm') : ''}">
+						<td class="row-menu">
+							<button class="dots" type="button" data-menu-toggle title="Opciones">&vellip;</button>
+							<div class="context-menu">
+								<div class="menu-title">Turnos</div>
+								<div class="menu-branch">
+									<button class="menu-item" type="button">
+										<span class="menu-label"><span class="menu-icon">◷</span> Nuevo turno</span><span>›</span>
+									</button>
+									<div class="context-submenu">
+										<button class="menu-item" type="button"
+											data-open-turno data-type="existente" data-sobreturno="false"
+											th:data-dia="${fecha}" th:data-hora="${slot.hora()}" th:data-profesional-id="${profesionalId}">
+											<span class="menu-label"><span class="menu-icon">☷</span> Paciente existente</span>
+										</button>
+										<button class="menu-item" type="button"
+											data-open-turno data-type="nuevo" data-sobreturno="false"
+											th:data-dia="${fecha}" th:data-hora="${slot.hora()}" th:data-profesional-id="${profesionalId}">
+											<span class="menu-label"><span class="menu-icon">＋</span> Paciente nuevo</span>
+										</button>
+									</div>
+								</div>
+								<button class="menu-item" type="button"
+									data-open-turno data-type="existente" data-sobreturno="true"
+									th:data-dia="${fecha}" th:data-hora="${slot.hora()}" th:data-profesional-id="${profesionalId}">
+									<span class="menu-label"><span class="menu-icon">▣</span> Nuevo sobreturno</span>
+								</button>
+								<button th:if="${slot.turno() != null}" class="menu-item" type="button" data-open-detalle-turno>
+									<span class="menu-label"><span class="menu-icon">ⓘ</span> Ver detalles</span>
+								</button>
+								<form th:if="${slot.turno() != null}" th:action="@{/turnos/{id}/anular(id=${slot.turno().id})}" method="post">
+									<input type="hidden" name="dia" th:value="${fecha}">
+									<input type="hidden" name="profesionalId" th:value="${profesionalId}">
+									<button class="menu-item danger" type="button" data-open-anular>
+										<span class="menu-label"><span class="menu-icon">⊘</span> Anular turno</span>
+									</button>
+								</form>
+								<form th:if="${slot.turno() == null}" th:action="@{/turnos/anular-horario}" method="post">
+									<input type="hidden" name="dia" th:value="${fecha}">
+									<input type="hidden" name="hora" th:value="${#temporals.format(slot.hora(), 'HH:mm')}">
+									<input type="hidden" name="profesionalId" th:value="${profesionalId}">
+									<button class="menu-item danger" type="button" data-open-anular>
+										<span class="menu-label"><span class="menu-icon">⊘</span> Anular turno</span>
+									</button>
+								</form>
+							</div>
+						</td>
+						<td>
+							<span th:text="${#temporals.format(slot.hora(), 'HH:mm')}"></span>
+							<span th:if="${bloqueado}" class="slot-block-dot" aria-hidden="true"></span>
+						</td>
+						<td>
+							<button th:if="${slot.turno() != null and !bloqueado}" type="button"
+								th:class="'status-pill status-' + ${slot.turno().presentismo.cssClass}"
+								th:text="${slot.turno().presentismo.etiqueta}"
+								th:data-status-code="${slot.turno().presentismo.codigo}"
+								data-open-presentismo
+								th:data-turno-id="${slot.turno().id}"
+								th:data-hora="${#temporals.format(slot.hora(), 'HH:mm')}"></button>
+						</td>
+						<td>
+							<div th:if="${bloqueado}" class="slot-block-label">
+								<span class="slot-info-icon">i</span>
+								<strong>NO CITAR ESTE TURNO</strong>
+							</div>
+							<div th:if="${slot.turno() != null and slot.turno().paciente != null}">
+								<span class="hc-pill" th:if="${slot.turno().paciente.historiaClinica}" th:text="'H.C: ' + ${slot.turno().paciente.historiaClinica}"></span>
+								<div th:text="${slot.turno().paciente.nombreCompleto}"></div>
+								<div class="agenda-mobile-observation" th:if="${!bloqueado and slot.turno().observacion}" th:text="${slot.turno().observacion}"></div>
+								<div class="muted" th:if="${slot.turno().paciente.telefonoCelular}" th:text="'Tel: ' + ${slot.turno().paciente.telefonoCelular}"></div>
+							</div>
+						</td>
+						<td>
+							<div th:if="${slot.turno() != null}">
+								<div th:text="${slot.turno().obraSocial != null ? slot.turno().obraSocial.nombre : ''}"></div>
+								<div class="muted" th:if="${slot.turno().plan != null}" th:text="'Plan: ' + ${slot.turno().plan.nombre}"></div>
+							</div>
+						</td>
+						<td th:text="${slot.turno() != null and !bloqueado ? slot.turno().observacion : ''}"></td>
+						<td>
+							<div th:if="${slot.turno() != null}">
+								<strong th:text="${slot.turno().dadoModificadoPor}"></strong>
+								<div class="muted" th:if="${slot.turno().fechaModificacion != null}"
+									th:text="${#temporals.format(slot.turno().fechaModificacion, 'dd/MM/yyyy')}"></div>
+							</div>
+						</td>
+					</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+	</main>
+</div>
+
+<div class="modal-backdrop" id="modalProfesionalInfo">
+	<div class="modal modal-wide">
+		<div class="modal-head">
+			<h2>Información del profesional</h2>
+			<button class="icon-btn" type="button" onclick="closeModal(this)">×</button>
+		</div>
+		<div th:if="${profesionalSeleccionado == null}" class="muted">
+			Seleccioná un profesional para ver sus datos y horarios.
+		</div>
+		<div th:if="${profesionalSeleccionado != null}">
+			<div class="professional-summary">
+				<div><span class="muted">NOMBRE</span><strong th:text="${profesionalSeleccionado.apellidoNombre}"></strong></div>
+				<div><span class="muted">MATRÍCULA</span><strong th:text="${profesionalSeleccionado.matricula ?: '—'}"></strong></div>
+				<div><span class="muted">TELÉFONO</span><strong th:text="${profesionalSeleccionado.telefono ?: '—'}"></strong></div>
+				<div><span class="muted">EMAIL</span><strong th:text="${profesionalSeleccionado.email ?: '—'}"></strong></div>
+			</div>
+			<div class="tabs-lite"><span>Horarios</span><span>Ausencias</span></div>
+			<div class="table-wrap">
+				<table style="min-width:760px">
+					<thead><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Agenda online</th></tr></thead>
+					<tbody>
+					<tr th:each="horario : ${profesionalSeleccionado.horarios}">
+						<td><strong th:text="${horario.dia}"></strong></td>
+						<td th:text="${horario.horaDesde != null ? #temporals.format(horario.horaDesde, 'HH:mm') : '—'}"></td>
+						<td th:text="${horario.horaHasta != null ? #temporals.format(horario.horaHasta, 'HH:mm') : '—'}"></td>
+						<td th:text="${horario.agendaOnline ? '🌐' : '—'}"></td>
+					</tr>
+					<tr th:if="${#lists.isEmpty(profesionalSeleccionado.horarios)}">
+						<td colspan="4" class="muted">El profesional todavía no tiene horarios cargados.</td>
+					</tr>
+					</tbody>
+				</table>
+			</div>
+			<div class="actions">
+				<a class="btn outline" th:href="@{/profesionales/{id}(id=${profesionalSeleccionado.id})}">Ir a datos del profesional ›</a>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal-backdrop" id="modalPacienteExistente">
+	<div class="modal modal-wide patient-picker-modal">
+		<div class="modal-head">
+			<h3>Paciente existente</h3>
+			<button class="icon-btn" type="button" onclick="closeModal(this)">×</button>
+		</div>
+		<div class="patient-picker-tools">
+			<label class="patient-picker-search">
+				<input id="turnoPatientSearch" autocomplete="off" placeholder="Buscar por nombre y apellido">
+				<span>⌕</span>
+			</label>
+			<label class="checkbox-line patient-contained-option">
+				<input id="turnoPatientContains" type="checkbox">
+				<span>Que esté contenido</span>
+			</label>
+			<button class="btn" type="button" id="turnoPatientSearchButton">Cambiar búsqueda ⚙</button>
+		</div>
+		<div class="table-wrap patient-picker-table">
+			<table>
+				<thead>
+				<tr>
+					<th>Nombre y Apellido</th>
+					<th>Historia clínica</th>
+					<th>Obra social</th>
+					<th>Plan</th>
+					<th>Fecha de nacimiento</th>
+					<th>Nro. Afiliado</th>
+					<th>DNI</th>
+					<th>Domicilio</th>
+				</tr>
+				</thead>
+				<tbody id="turnoPatientResults">
+				<tr>
+					<td colspan="8" class="muted">Escribí al menos 2 letras para buscar pacientes.</td>
+				</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+
+<div class="modal-backdrop" id="modalTurnoObservacion">
+	<div class="modal">
+		<div class="modal-head">
+			<h3>Observaciones</h3>
+			<button class="icon-btn" type="button" onclick="closeModal(this)">×</button>
+		</div>
+		<form method="post" th:action="@{/turnos}">
+			<input type="hidden" name="dia">
+			<input type="hidden" name="hora">
+			<input type="hidden" name="sobreturno">
+			<input type="hidden" name="pacienteId">
+			<div class="form-grid">
+				<label>Profesional
+					<select name="profesionalId" required>
+						<option th:each="prof : ${profesionales}" th:value="${prof.id}" th:text="${prof.apellidoNombre}"
+							th:selected="${profesionalId != null and prof.id == profesionalId}"></option>
+					</select>
+				</label>
+				<div class="selected-patient-card">
+					<span class="muted">Paciente seleccionado</span>
+					<strong data-selected-patient-name></strong>
+					<small data-selected-patient-meta></small>
+				</div>
+				<label class="full">Observación
+					<textarea name="observacion"></textarea>
+				</label>
+			</div>
+			<div class="actions">
+				<button class="btn outline" type="button" onclick="closeModal(this)">Cancelar</button>
+				<button class="btn primary" type="submit">Guardar turno</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="modal-backdrop" id="modalPacienteNuevo">
+	<div class="modal">
+		<div class="modal-head">
+			<h3>Paciente nuevo</h3>
+			<button class="icon-btn" type="button" onclick="closeModal(this)">×</button>
+		</div>
+		<form method="post" th:action="@{/turnos}">
+			<input type="hidden" name="dia">
+			<input type="hidden" name="hora">
+			<input type="hidden" name="sobreturno">
+			<div class="form-grid">
+				<label>Profesional
+					<select name="profesionalId" required>
+						<option th:each="prof : ${profesionales}" th:value="${prof.id}" th:text="${prof.apellidoNombre}"
+							th:selected="${profesionalId != null and prof.id == profesionalId}"></option>
+					</select>
+				</label>
+				<label>Nombre y apellido
+					<input name="pacienteNuevoNombre" required>
+				</label>
+				<label>Documento
+					<input name="pacienteNuevoDocumento">
+				</label>
+				<label>Teléfono celular
+					<input name="pacienteNuevoTelefono">
+				</label>
+				<label>Obra social
+					<select name="obraSocialId">
+						<option value="">Sin obra social</option>
+						<option th:each="os : ${obrasSociales}" th:value="${os.id}" th:text="${os.nombre}"></option>
+					</select>
+				</label>
+				<label class="full">Observación
+					<textarea name="observacion"></textarea>
+				</label>
+			</div>
+			<div class="actions">
+				<button class="btn outline" type="button" onclick="closeModal(this)">Cancelar</button>
+				<button class="btn primary" type="submit">Guardar turno</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<div class="modal-backdrop" id="modalAnularTurno">
+	<div class="modal cancel-turno-modal">
+		<div class="modal-head">
+			<h3>Anular turno</h3>
+			<button class="icon-btn modal-close-flat" type="button" onclick="closeModal(this)">×</button>
+		</div>
+		<p>Este turno se marcará como "NO CITAR".</p>
+		<div class="actions cancel-turno-actions">
+			<button class="btn danger-outline" type="button" onclick="closeModal(this)">Cancelar</button>
+			<button class="btn primary" type="button" id="confirmAnularTurno">Guardar</button>
+		</div>
+	</div>
+</div>
+
+<div class="modal-backdrop" id="modalPresentismo">
+	<div class="modal">
+		<div class="modal-head">
+			<h3 data-presentismo-hora>Hora</h3>
+			<button class="icon-btn" type="button" onclick="closeModal(this)">×</button>
+		</div>
+		<div class="status-grid">
+			<form th:each="estado : ${presentismos}" th:action="@{/turnos/{id}/presentismo(id=0)}" method="post"
+				th:if="${estado.name() != 'SIN_CONFIRMAR'}"
+				th:class="'status-form status-form-' + ${estado.cssClass}"
+				onsubmit="this.action=this.action.replace('/0/', '/' + this.querySelector('[name=id]').value + '/')">
+				<input type="hidden" name="id">
+				<input type="hidden" name="dia" th:value="${fecha}">
+				<input type="hidden" name="profesionalId" th:value="${profesionalId}">
+				<input type="hidden" name="presentismo" th:value="${estado}">
+				<button type="submit" th:class="'status-pill status-' + ${estado.cssClass}" th:text="${estado.etiqueta}"></button>
+			</form>
+		</div>
+	</div>
+</div>
+
+<div class="modal-backdrop" id="modalDetalleTurno">
+	<div class="modal turno-detail-modal">
+		<div class="turno-detail-topbar">
+			<button class="turno-detail-back" type="button" onclick="closeModal(this)">‹</button>
+			<h3>Detalle Turno</h3>
+		</div>
+		<div class="turno-detail-card">
+			<h2 data-detail-field="profesional">Profesional</h2>
+			<div class="turno-detail-body">
+				<p><span>Fecha:</span> <strong data-detail-field="fecha"></strong> <span>- Hora:</span> <strong data-detail-field="hora"></strong></p>
+				<p><span>Paciente:</span> <strong class="link-like" data-detail-field="paciente"></strong></p>
+				<p><span>Nro. HC:</span> <strong data-detail-field="hc"></strong></p>
+				<p><span>Asistencia:</span> <strong data-detail-field="presentismo"></strong></p>
+				<p><span>Hora llegada:</span> <strong>-</strong></p>
+				<p><span>Obra social:</span> <strong data-detail-field="obraSocial"></strong></p>
+				<p><span>Plan:</span> <strong data-detail-field="plan"></strong></p>
+				<p><span>Nro. Afiliado:</span> <strong data-detail-field="afiliado"></strong></p>
+				<p><span>Telefono/s:</span> <strong data-detail-field="telefonos"></strong></p>
+				<p><span>Observación:</span> <strong data-detail-field="observacion"></strong></p>
+				<p><span>Turno online:</span> <strong>No</strong></p>
+				<p><span>Dado/Modif. por:</span> <strong data-detail-field="modificadoPor"></strong></p>
+				<p><span>Dado/Modif. el:</span> <strong data-detail-field="modificadoEl"></strong></p>
+			</div>
+			<div class="turno-detail-actions">
+				<!-- <button class="btn outline" type="button" onclick="closeModal(this)">Volver atrás</button> -->
+				<button class="btn primary" type="button" data-open-edit-turno>Modificar datos</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal-backdrop" id="modalModificarTurno">
+	<div class="modal">
+		<div class="modal-head">
+			<h3>Modificar turno</h3>
+			<button class="icon-btn" type="button" onclick="closeModal(this)">×</button>
+		</div>
+		<form method="post" data-edit-turno-form>
+			<div class="form-grid">
+				<label>Fecha
+					<input type="date" name="dia" required>
+				</label>
+				<label>Hora
+					<input type="time" name="hora" required>
+				</label>
+				<label class="full">Profesional
+					<select name="profesionalId" required>
+						<option th:each="prof : ${profesionales}" th:value="${prof.id}" th:text="${prof.apellidoNombre}"></option>
+					</select>
+				</label>
+				<label class="full">Observación
+					<textarea name="observacion"></textarea>
+				</label>
+			</div>
+			<div class="actions">
+				<button class="btn outline" type="button" onclick="closeModal(this)">Cancelar</button>
+				<button class="btn primary" type="submit">Guardar cambios</button>
+			</div>
+		</form>
+	</div>
+</div>
+</body>
+</html>
