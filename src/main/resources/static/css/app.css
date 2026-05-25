@@ -96,6 +96,36 @@ a {
 	display: none;
 }
 
+.patient-name-line {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 100%;
+}
+
+.whatsapp-turno-link {
+	width: 28px;
+	height: 28px;
+	flex: 0 0 28px;
+	display: inline-grid;
+	place-items: center;
+	border-radius: 50%;
+	transition: transform .15s ease, filter .15s ease;
+	vertical-align: middle;
+}
+
+.whatsapp-turno-link:hover {
+	transform: translateY(-1px);
+	filter: brightness(1.05);
+}
+
+.whatsapp-turno-link img {
+	width: 100%;
+	height: 100%;
+	display: block;
+	object-fit: contain;
+}
+
 .mobile-topbar,
 .mobile-backdrop,
 .mobile-nav-label,
@@ -602,6 +632,60 @@ label {
 	display: flex;
 }
 
+.turno-saving-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 140;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	background: rgba(8, 16, 32, .42);
+	backdrop-filter: blur(2px);
+}
+
+.turno-saving-overlay.open {
+	display: flex;
+}
+
+.turno-saving-card {
+	width: min(360px, calc(100vw - 34px));
+	display: grid;
+	justify-items: center;
+	gap: 10px;
+	padding: 24px 22px;
+	border-radius: 12px;
+	background: #fff;
+	box-shadow: 0 24px 70px rgba(0, 0, 0, .28);
+	text-align: center;
+}
+
+.turno-saving-card strong {
+	font-size: 20px;
+	color: #111827;
+}
+
+.turno-saving-card span {
+	font-size: 15px;
+	line-height: 1.35;
+	color: var(--muted);
+}
+
+.turno-saving-spinner {
+	width: 42px;
+	height: 42px;
+	border: 4px solid #dbeafe;
+	border-top-color: var(--blue);
+	border-radius: 50%;
+	animation: turno-saving-spin .8s linear infinite;
+}
+
+@keyframes turno-saving-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 .modal {
 	background: #fff;
 	border-radius: 8px;
@@ -636,6 +720,50 @@ label {
 .professional-summary div {
 	display: grid;
 	gap: 8px;
+}
+
+.professional-schedule-title {
+	margin: 8px 0 10px;
+	font-size: 18px;
+	color: #22314a;
+}
+
+.professional-schedule-table table {
+	min-width: 760px;
+}
+
+.professional-schedule-tramos {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.schedule-tramo-pill {
+	display: inline-flex;
+	align-items: center;
+	min-height: 30px;
+	padding: 5px 12px;
+	border-radius: 999px;
+	background: #edf5ff;
+	color: #245fc4;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.online-pill {
+	display: inline-flex;
+	align-items: center;
+	min-height: 28px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	background: #dcfce7;
+	color: #166534;
+	font-weight: 700;
+}
+
+.professional-no-attends td {
+	background: #fbfdff;
 }
 
 .tabs-lite {
@@ -933,16 +1061,100 @@ label {
 	padding: 12px 16px;
 	border-radius: 8px;
 	font-weight: 600;
+	border: 1px solid transparent;
+	box-shadow: 0 8px 22px rgba(20, 34, 58, .08);
 }
 
 .flash.ok {
 	background: #dcfce7;
 	color: #166534;
+	border-color: #bbf7d0;
 }
 
 .flash.error {
 	background: #fee2e2;
 	color: #991b1b;
+	border-color: #fecaca;
+	position: relative;
+	padding-left: 46px;
+}
+
+.flash.error::before {
+	content: "!";
+	position: absolute;
+	left: 16px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	background: #ef4444;
+	color: #fff;
+	font-weight: 800;
+	font-size: 13px;
+}
+
+.agenda-empty-row:hover td {
+	background: #fff;
+}
+
+.agenda-empty-state {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 24px;
+	min-height: 220px;
+	padding: 32px 18px;
+	color: #111827;
+	text-align: left;
+}
+
+.agenda-empty-icon {
+	width: 112px;
+	height: 112px;
+	border: 10px solid #93a4ba;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
+	color: #3b4a5f;
+	font-size: 54px;
+	line-height: 1;
+	background: #eaf0f7;
+	box-shadow: 28px 28px 0 -18px #3b4a5f;
+}
+
+.agenda-empty-state strong {
+	display: block;
+	font-size: 32px;
+	line-height: 1.15;
+}
+
+.agenda-empty-state span {
+	display: block;
+	margin-top: 8px;
+	font-size: 22px;
+	color: #263448;
+}
+
+.form-help {
+	margin: -4px 0 8px;
+	line-height: 1.35;
+}
+
+.schedule-copy-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	margin: 12px 0 4px;
+}
+
+.schedule-copy-actions .btn {
+	min-height: 38px;
+	padding: 0 14px;
+	font-size: 14px;
 }
 
 .patient-page {
@@ -1059,6 +1271,16 @@ label {
 	align-items: center;
 	gap: 12px;
 	min-width: 0;
+}
+
+.patient-summary-actions {
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+.patient-edit-inline {
+	min-height: 34px;
+	padding: 0 14px;
 }
 
 .patient-summary-bar.empty .patient-dot,
@@ -1434,6 +1656,41 @@ label {
 		background: #fff;
 	}
 
+	.agenda-shell .agenda-empty-row {
+		display: block;
+		min-height: 0;
+		padding: 0;
+	}
+
+	.agenda-shell .agenda-empty-row td {
+		display: block;
+		width: 100%;
+	}
+
+	.agenda-empty-state {
+		min-height: calc(100dvh - 300px);
+		flex-direction: column;
+		gap: 18px;
+		text-align: center;
+		padding: 34px 22px;
+	}
+
+	.agenda-empty-icon {
+		width: 96px;
+		height: 96px;
+		font-size: 46px;
+		border-width: 8px;
+	}
+
+	.agenda-empty-state strong {
+		font-size: 26px;
+	}
+
+	.agenda-empty-state span {
+		font-size: 17px;
+		line-height: 1.35;
+	}
+
 	.agenda-shell tr:hover td {
 		background: transparent;
 	}
@@ -1466,6 +1723,25 @@ label {
 		font-size: 19px;
 		line-height: 1.2;
 		color: #111827;
+	}
+
+	.agenda-shell .patient-name-line {
+		display: flex;
+		justify-content: flex-start;
+		gap: 7px;
+	}
+
+	.agenda-shell .patient-name-line > span {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.agenda-shell .whatsapp-turno-link {
+		width: 25px;
+		height: 25px;
+		flex-basis: 25px;
 	}
 
 	.agenda-shell .agenda-mobile-observation {
@@ -1699,9 +1975,77 @@ label {
 		overflow-wrap: anywhere;
 	}
 
+	#modalProfesionalInfo .professional-schedule-title {
+		font-size: 16px;
+		margin-top: 2px;
+	}
+
+	#modalProfesionalInfo .professional-schedule-table {
+		border: 0;
+		background: transparent;
+		overflow: visible;
+	}
+
+	#modalProfesionalInfo .professional-schedule-table table,
+	#modalProfesionalInfo .professional-schedule-table tbody,
+	#modalProfesionalInfo .professional-schedule-table tr,
+	#modalProfesionalInfo .professional-schedule-table td {
+		display: block;
+		width: 100%;
+		min-width: 0;
+	}
+
+	#modalProfesionalInfo .professional-schedule-table thead {
+		display: none;
+	}
+
+	#modalProfesionalInfo .professional-schedule-table tbody {
+		display: grid;
+		gap: 8px;
+	}
+
+	#modalProfesionalInfo .professional-schedule-table tr {
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		background: #fff;
+		padding: 10px 12px;
+	}
+
+	#modalProfesionalInfo .professional-schedule-table td {
+		border: 0;
+		padding: 3px 0;
+	}
+
+	#modalProfesionalInfo .professional-schedule-table td:first-child strong {
+		font-size: 15px;
+	}
+
+	#modalProfesionalInfo .professional-schedule-tramos {
+		margin-top: 6px;
+	}
+
+	#modalProfesionalInfo .schedule-tramo-pill {
+		min-height: 28px;
+		font-size: 13px;
+	}
+
+	#modalProfesionalInfo .professional-schedule-table td:nth-child(3) {
+		margin-top: 4px;
+	}
+
 	#modalPresentismo {
 		align-items: center;
 		padding: 18px;
+	}
+
+	.turno-saving-overlay {
+		align-items: flex-start;
+		padding: 88px 16px 18px;
+	}
+
+	.turno-saving-card {
+		width: 100%;
+		padding: 22px 18px;
 	}
 
 	#modalPresentismo .modal {
@@ -2195,6 +2539,19 @@ label {
 	.content .actions {
 		flex-wrap: wrap;
 		gap: 8px;
+	}
+
+	.schedule-copy-actions {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 8px;
+	}
+
+	.schedule-copy-actions .btn {
+		width: 100%;
+		white-space: normal;
+		line-height: 1.2;
+		padding: 8px 12px;
 	}
 
 	.content .actions .btn,

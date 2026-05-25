@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", setupMobileLayout);
 document.addEventListener("DOMContentLoaded", setupResponsiveTables);
+document.addEventListener("DOMContentLoaded", setupWhatsappTurnoLinks);
 
 function setupMobileLayout() {
 	const app = document.querySelector(".app");
@@ -155,6 +156,27 @@ document.addEventListener("click", (event) => {
 	if (deleteProfessionalButton) {
 		openEliminarProfesionalModal(deleteProfessionalButton);
 	}
+
+	const applyWeekTramoButton = event.target.closest("[data-apply-week-tramo]");
+	if (applyWeekTramoButton) {
+		aplicarTramoSemana(applyWeekTramoButton);
+	}
+});
+
+document.addEventListener("submit", (event) => {
+	const form = event.target.closest("[data-turno-save-form]");
+	if (!form) return;
+	if (form.dataset.submitting === "true") {
+		event.preventDefault();
+		return;
+	}
+	form.dataset.submitting = "true";
+	form.querySelectorAll("button[type='submit']").forEach((button) => {
+		button.disabled = true;
+		button.dataset.originalText = button.textContent;
+		button.textContent = "Guardando...";
+	});
+	showTurnoSavingOverlay();
 });
 
 function openTurnoModal(type, dia, hora, profesionalId, sobreturno) {
@@ -258,6 +280,13 @@ function closeModal(button) {
 	button.closest(".modal-backdrop").classList.remove("open");
 }
 
+function showTurnoSavingOverlay() {
+	const overlay = document.getElementById("turnoSavingOverlay");
+	if (!overlay) return;
+	overlay.classList.add("open");
+	overlay.setAttribute("aria-hidden", "false");
+}
+
 function openEliminarUsuarioModal(button) {
 	const modal = document.getElementById("modalEliminarUsuario");
 	const form = modal?.querySelector("[data-delete-user-form]");
@@ -287,6 +316,41 @@ function openAnularTurnoModal(form) {
 	pendingAnularForm = form;
 	document.querySelectorAll(".row-menu.open").forEach((menu) => menu.classList.remove("open"));
 	document.getElementById("modalAnularTurno")?.classList.add("open");
+}
+
+function aplicarTramoSemana(button) {
+	const tramo = button.dataset.applyWeekTramo;
+	const rows = Array.from(document.querySelectorAll("[data-professional-schedule-row]"));
+	const source = rows.find((row) => row.dataset.scheduleDay === "Lunes" && row.dataset.scheduleTramo === tramo);
+	if (!source) return;
+
+	const desde = source.querySelector("input[name$='.horaDesde']")?.value || "";
+	const hasta = source.querySelector("input[name$='.horaHasta']")?.value || "";
+	const online = Boolean(source.querySelector("input[name$='.agendaOnline']")?.checked);
+	if (!desde || !hasta) {
+		alert(`Completá el tramo ${tramo} del lunes antes de aplicarlo.`);
+		return;
+	}
+
+	const weekdays = new Set(["Lunes", "Martes", "Miercoles", "Jueves", "Viernes"]);
+	rows
+		.filter((row) => weekdays.has(row.dataset.scheduleDay) && row.dataset.scheduleTramo === tramo)
+		.forEach((row) => {
+			const desdeInput = row.querySelector("input[name$='.horaDesde']");
+			const hastaInput = row.querySelector("input[name$='.horaHasta']");
+			const onlineInput = row.querySelector("input[name$='.agendaOnline']");
+			if (desdeInput) desdeInput.value = desde;
+			if (hastaInput) hastaInput.value = hasta;
+			if (onlineInput) onlineInput.checked = online;
+		});
+
+	const originalText = button.textContent;
+	button.textContent = "Aplicado";
+	button.disabled = true;
+	window.setTimeout(() => {
+		button.textContent = originalText;
+		button.disabled = false;
+	}, 1200);
 }
 
 document.addEventListener("keydown", (event) => {
@@ -346,6 +410,7 @@ function renderAgenda(agenda) {
 	if (dateText) dateText.textContent = agenda.fechaTexto;
 	renderAgendaDays(agenda);
 	renderAgendaRows(agenda);
+	setupWhatsappTurnoLinks();
 	updateAgendaHiddenInputs(agenda.fecha);
 }
 
@@ -379,7 +444,24 @@ function renderAgendaRows(agenda) {
 	const body = document.getElementById("agendaBody");
 	if (!body) return;
 	const profesionalId = getTopbarValue("profesionalId");
-	body.innerHTML = (agenda.slots || []).map((slot) => renderAgendaRow(slot, agenda.fecha, profesionalId)).join("");
+	const slots = agenda.slots || [];
+	if (!slots.length) {
+		body.innerHTML = `
+			<tr class="agenda-empty-row">
+				<td colspan="7">
+					<div class="agenda-empty-state">
+						<div class="agenda-empty-icon">⌕</div>
+						<div>
+							<strong>Ups!</strong>
+							<span>No hay datos para mostrar, elegí otro día y/o profesional.</span>
+						</div>
+					</div>
+				</td>
+			</tr>
+		`;
+		return;
+	}
+	body.innerHTML = slots.map((slot) => renderAgendaRow(slot, agenda.fecha, profesionalId)).join("");
 }
 
 function renderAgendaRow(slot, fecha, profesionalId) {
@@ -441,7 +523,7 @@ function renderAgendaRow(slot, fecha, profesionalId) {
 			</td>
 			<td><span>${escapeHtml(slot.hora)}</span>${bloqueado ? `<span class="slot-block-dot" aria-hidden="true"></span>` : ""}</td>
 			<td>${bloqueado ? "" : renderPresentismoButton(turno, slot.hora)}</td>
-			<td>${bloqueado ? renderBlockedSlotLabel() : renderPaciente(turno?.paciente, turno?.observacion)}</td>
+			<td>${bloqueado ? renderBlockedSlotLabel() : renderPaciente(turno?.paciente, turno?.observacion, turno?.profesional, fecha, slot.hora)}</td>
 			<td>${renderObraSocial(turno)}</td>
 			<td>${bloqueado ? "" : escapeHtml(turno?.observacion || "")}</td>
 			<td>${renderModificacion(turno)}</td>
@@ -513,16 +595,83 @@ function formatDateSlash(value) {
 	return `${day}/${month}/${year}`;
 }
 
-function renderPaciente(paciente, observacion) {
+function renderPaciente(paciente, observacion, professional, fecha, hora) {
 	if (!paciente) return "";
 	return `
 		<div>
 			${paciente.historiaClinica ? `<span class="hc-pill">H.C: ${escapeHtml(paciente.historiaClinica)}</span>` : ""}
-			<div>${escapeHtml(paciente.nombreCompleto || "")}</div>
+			<div class="patient-name-line">
+				<span>${escapeHtml(paciente.nombreCompleto || "")}</span>
+				${renderWhatsappTurnoLink(paciente, professional, fecha, hora)}
+			</div>
 			${observacion ? `<div class="agenda-mobile-observation">${escapeHtml(observacion)}</div>` : ""}
 			${paciente.telefonoCelular ? `<div class="muted">Tel: ${escapeHtml(paciente.telefonoCelular)}</div>` : ""}
 		</div>
 	`;
+}
+
+function renderWhatsappTurnoLink(paciente, professional, fecha, hora) {
+	if (!paciente?.telefonoCelular) return "";
+	return `
+		<a class="whatsapp-turno-link"
+			href="#"
+			target="_blank"
+			rel="noopener"
+			title="Enviar recordatorio por WhatsApp"
+			aria-label="Enviar recordatorio por WhatsApp"
+			data-whatsapp-turno
+			data-whatsapp-phone="${escapeHtml(paciente.telefonoCelular)}"
+			data-whatsapp-patient="${escapeHtml(paciente.nombreCompleto || "")}"
+			data-whatsapp-professional="${escapeHtml(professional || "")}"
+			data-whatsapp-date="${escapeHtml(fecha || "")}"
+			data-whatsapp-hour="${escapeHtml(hora || "")}">
+			<img src="/img/whatsapp.png" alt="">
+		</a>
+	`;
+}
+
+function setupWhatsappTurnoLinks() {
+	document.querySelectorAll("[data-whatsapp-turno]").forEach((link) => {
+		const phone = normalizeWhatsappPhone(link.dataset.whatsappPhone);
+		if (!phone) {
+			link.setAttribute("hidden", "");
+			return;
+		}
+		const message = whatsappTurnoMessage(link.dataset);
+		link.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+		link.removeAttribute("hidden");
+	});
+}
+
+function normalizeWhatsappPhone(value) {
+	let digits = String(value || "").replace(/\D/g, "");
+	if (!digits) return "";
+	if (digits.startsWith("00")) digits = digits.slice(2);
+	while (digits.startsWith("0")) digits = digits.slice(1);
+	if (digits.startsWith("549") || digits.startsWith("54")) return digits;
+	if (digits.length === 10) return `549${digits}`;
+	return digits;
+}
+
+function whatsappTurnoMessage(data) {
+	const patient = data.whatsappPatient || "";
+	const professional = data.whatsappProfessional || "";
+	const date = formatWhatsappDate(data.whatsappDate);
+	const hour = data.whatsappHour || "";
+	return `Hola! ${patient}, te recordamos que tienes un turno con el Dr/a ${professional} el día ${date} a las ${hour} en Av Alvear 856.`;
+}
+
+function formatWhatsappDate(value) {
+	if (!value) return "";
+	const [year, month, day] = String(value).split("-").map(Number);
+	if (!year || !month || !day) return value;
+	const date = new Date(year, month - 1, day);
+	return new Intl.DateTimeFormat("es-AR", {
+		weekday: "long",
+		day: "numeric",
+		month: "long",
+		year: "numeric"
+	}).format(date);
 }
 
 function renderObraSocial(turno) {
@@ -787,10 +936,19 @@ function fillPatientDetail(patient) {
 		balance.textContent = formatMoney(patient.saldoAcreedor);
 	}
 
-	const editLink = document.getElementById("patientEditLink");
-	if (editLink) {
-		editLink.href = `/pacientes/${patient.id}`;
-	}
+	document.querySelectorAll("[data-patient-edit-link]").forEach((editLink) => {
+		if (patient.id) {
+			editLink.href = `/pacientes/${patient.id}`;
+			editLink.removeAttribute("hidden");
+			editLink.classList.remove("disabled");
+			editLink.removeAttribute("aria-disabled");
+		} else {
+			editLink.href = "#";
+			editLink.setAttribute("hidden", "");
+			editLink.classList.add("disabled");
+			editLink.setAttribute("aria-disabled", "true");
+		}
+	});
 	const deleteForm = document.getElementById("patientDeleteForm");
 	if (deleteForm) {
 		deleteForm.action = `/pacientes/${patient.id}/eliminar`;

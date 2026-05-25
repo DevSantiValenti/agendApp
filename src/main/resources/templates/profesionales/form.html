@@ -51,18 +51,27 @@
 					<label class="full">Configuración de la firma ** <textarea th:field="*{configuracionFirma}"></textarea></label>
 				</div>
 				<h3>Horarios de trabajo</h3>
+				<p class="muted form-help">Cargá uno o dos tramos por día. Si un día queda sin horarios, no aparecerán turnos disponibles para ese profesional.</p>
+				<div class="schedule-copy-actions">
+					<button class="btn outline" type="button" data-apply-week-tramo="1">Aplicar tramo 1 a toda la semana (lun a viernes)</button>
+					<button class="btn outline" type="button" data-apply-week-tramo="2">Aplicar tramo 2 a toda la semana (lun a viernes)</button>
+				</div>
 				<div class="table-wrap" style="margin-top:12px">
 					<table style="min-width:720px">
 						<thead>
-						<tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Agenda online</th></tr>
+						<tr><th>Día</th><th>Tramo</th><th>Desde</th><th>Hasta</th><th>Agenda online</th></tr>
 						</thead>
 						<tbody>
-						<tr th:each="horario, stat : *{horarios}">
+						<tr th:each="horario, stat : *{horarios}"
+							data-professional-schedule-row
+							th:data-schedule-day="${horario.dia}"
+							th:data-schedule-tramo="${stat.index % 2 == 0 ? '1' : '2'}">
 							<td>
 								<input type="hidden" th:field="*{horarios[__${stat.index}__].id}">
 								<input type="hidden" th:field="*{horarios[__${stat.index}__].dia}">
 								<strong th:text="${horario.dia}"></strong>
 							</td>
+							<td th:text="${stat.index % 2 == 0 ? '1' : '2'}"></td>
 							<td><input type="time" th:field="*{horarios[__${stat.index}__].horaDesde}"></td>
 							<td><input type="time" th:field="*{horarios[__${stat.index}__].horaHasta}"></td>
 							<td><input type="checkbox" th:field="*{horarios[__${stat.index}__].agendaOnline}"></td>

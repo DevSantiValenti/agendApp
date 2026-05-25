@@ -1,8 +1,9 @@
 package com.analistas.agendApp.controller;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.time.LocalTime;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -60,7 +61,8 @@ public class ProfesionalController {
 			List<Especialidad> especialidades = especialidadRepository.findAllById(especialidadIds);
 			profesional.setEspecialidades(new HashSet<>(especialidades));
 		}
-		profesional.getHorarios().removeIf(horario -> horario.getDia() == null || horario.getDia().isBlank());
+		profesional.getHorarios().removeIf(horario -> horario.getDia() == null || horario.getDia().isBlank()
+				|| horario.getHoraDesde() == null || horario.getHoraHasta() == null);
 		profesional.getHorarios().forEach(horario -> horario.setProfesional(profesional));
 		profesionalService.guardar(profesional);
 		return "redirect:/configuracion/tablas/profesionales";
@@ -85,32 +87,42 @@ public class ProfesionalController {
 
 	private void completarHorarios(Profesional profesional) {
 		String[] dias = {"Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"};
+		List<ProfesionalHorario> ordenados = new ArrayList<>();
 		for (String dia : dias) {
-			boolean existe = profesional.getHorarios().stream()
-					.filter(h -> dia.equals(h.getDia()))
-					.peek(this::completarHorario)
-					.findFirst()
-					.isPresent();
-			if (!existe) {
-				ProfesionalHorario horario = new ProfesionalHorario();
-				horario.setDia(dia);
-				completarHorario(horario);
-				horario.setProfesional(profesional);
-				profesional.getHorarios().add(horario);
+			List<ProfesionalHorario> horariosDia = profesional.getHorarios().stream()
+					.filter(horario -> dia.equals(horario.getDia()))
+					.peek(this::limpiarFinDeSemanaIncompleto)
+					.sorted(Comparator.comparing(ProfesionalHorario::getHoraDesde,
+							Comparator.nullsLast(Comparator.naturalOrder())))
+					.collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+			while (horariosDia.size() < 2) {
+				horariosDia.add(nuevoHorario(dia, profesional));
 			}
+			ordenados.addAll(horariosDia);
 		}
+		profesional.getHorarios().clear();
+		profesional.getHorarios().addAll(ordenados);
 	}
 
-	private void completarHorario(ProfesionalHorario horario) {
-		if (horario.getHoraDesde() == null) {
-			horario.setHoraDesde(esFinDeSemana(horario.getDia()) ? LocalTime.of(9, 0) : LocalTime.of(8, 0));
+	private void limpiarFinDeSemanaIncompleto(ProfesionalHorario horario) {
+		if (!esFinDeSemana(horario.getDia())) {
+			return;
 		}
-		if (horario.getHoraHasta() == null) {
-			horario.setHoraHasta(esFinDeSemana(horario.getDia()) ? LocalTime.of(20, 0) : LocalTime.of(17, 0));
+		if (horario.getHoraDesde() == null || horario.getHoraHasta() == null) {
+			horario.setHoraDesde(null);
+			horario.setHoraHasta(null);
+			horario.setAgendaOnline(false);
 		}
 	}
 
 	private boolean esFinDeSemana(String dia) {
 		return "Sabado".equals(dia) || "Domingo".equals(dia);
+	}
+
+	private ProfesionalHorario nuevoHorario(String dia, Profesional profesional) {
+		ProfesionalHorario horario = new ProfesionalHorario();
+		horario.setDia(dia);
+		horario.setProfesional(profesional);
+		return horario;
 	}
 }

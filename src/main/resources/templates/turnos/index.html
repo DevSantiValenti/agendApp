@@ -59,8 +59,8 @@
 		</div>
 
 		<section class="agenda-shell">
-			<p class="flash ok" th:if="${ok}" th:text="${ok}"></p>
-			<p class="flash error" th:if="${error}" th:text="${error}"></p>
+			<p class="flash ok" th:if="${ok}" th:text="${ok}" role="status"></p>
+			<p class="flash error" th:if="${error}" th:text="${error}" role="alert"></p>
 			<div class="table-wrap">
 				<table>
 					<thead>
@@ -75,6 +75,17 @@
 					</tr>
 					</thead>
 					<tbody id="agendaBody">
+					<tr th:if="${#lists.isEmpty(slots)}" class="agenda-empty-row">
+						<td colspan="7">
+							<div class="agenda-empty-state">
+								<div class="agenda-empty-icon">⌕</div>
+								<div>
+									<strong>Ups!</strong>
+									<span>No hay datos para mostrar, elegí otro día y/o profesional.</span>
+								</div>
+							</div>
+						</td>
+					</tr>
 					<tr th:each="slot : ${slots}"
 						th:with="bloqueado=${slot.turno() != null and slot.turno().presentismo.name() == 'CANCELADO' and slot.turno().paciente == null and slot.turno().observacion == 'NO CITAR ESTE TURNO'}"
 						th:classappend="${bloqueado} ? ' slot-blocked' : ''"
@@ -163,8 +174,25 @@
 							</div>
 							<div th:if="${slot.turno() != null and slot.turno().paciente != null}">
 								<span class="hc-pill" th:if="${slot.turno().paciente.historiaClinica}" th:text="'H.C: ' + ${slot.turno().paciente.historiaClinica}"></span>
-								<div th:text="${slot.turno().paciente.nombreCompleto}"></div>
-								<div class="agenda-mobile-observation" th:if="${!bloqueado and slot.turno().observacion}" th:text="${slot.turno().observacion}"></div>
+								<div class="patient-name-line">
+									<span th:text="${slot.turno().paciente.nombreCompleto}"></span>
+									<a th:if="${slot.turno().paciente.telefonoCelular}"
+										class="whatsapp-turno-link"
+										href="#"
+										target="_blank"
+										rel="noopener"
+										title="Enviar recordatorio por WhatsApp"
+										aria-label="Enviar recordatorio por WhatsApp"
+										data-whatsapp-turno
+										th:data-whatsapp-phone="${slot.turno().paciente.telefonoCelular}"
+										th:data-whatsapp-patient="${slot.turno().paciente.nombreCompleto}"
+										th:data-whatsapp-professional="${slot.turno().profesional != null ? slot.turno().profesional.apellidoNombre : (profesionalSeleccionado != null ? profesionalSeleccionado.apellidoNombre : '')}"
+										th:data-whatsapp-date="${fecha}"
+										th:data-whatsapp-hour="${#temporals.format(slot.hora(), 'HH:mm')}">
+										<img th:src="@{/img/whatsapp.png}" alt="">
+									</a>
+								</div>
+								<div class="agenda-mobile-observation" th:if="${!bloqueado and !#strings.isEmpty(slot.turno().observacion)}" th:text="${slot.turno().observacion}"></div>
 								<div class="muted" th:if="${slot.turno().paciente.telefonoCelular}" th:text="'Tel: ' + ${slot.turno().paciente.telefonoCelular}"></div>
 							</div>
 						</td>
@@ -206,19 +234,25 @@
 				<div><span class="muted">TELÉFONO</span><strong th:text="${profesionalSeleccionado.telefono ?: '—'}"></strong></div>
 				<div><span class="muted">EMAIL</span><strong th:text="${profesionalSeleccionado.email ?: '—'}"></strong></div>
 			</div>
-			<div class="tabs-lite"><span>Horarios</span><span>Ausencias</span></div>
-			<div class="table-wrap">
-				<table style="min-width:760px">
-					<thead><tr><th>Día</th><th>Desde</th><th>Hasta</th><th>Agenda online</th></tr></thead>
+			<h3 class="professional-schedule-title">Días y horarios de atención</h3>
+			<div class="table-wrap professional-schedule-table">
+				<table>
+					<thead><tr><th>Día</th><th>Horarios de atención</th><th>Agenda online</th></tr></thead>
 					<tbody>
-					<tr th:each="horario : ${profesionalSeleccionado.horarios}">
-						<td><strong th:text="${horario.dia}"></strong></td>
-						<td th:text="${horario.horaDesde != null ? #temporals.format(horario.horaDesde, 'HH:mm') : '—'}"></td>
-						<td th:text="${horario.horaHasta != null ? #temporals.format(horario.horaHasta, 'HH:mm') : '—'}"></td>
-						<td th:text="${horario.agendaOnline ? '🌐' : '—'}"></td>
-					</tr>
-					<tr th:if="${#lists.isEmpty(profesionalSeleccionado.horarios)}">
-						<td colspan="4" class="muted">El profesional todavía no tiene horarios cargados.</td>
+					<tr th:each="horarioDia : ${horariosProfesionalResumen}"
+						th:classappend="${#lists.isEmpty(horarioDia.tramos())} ? ' professional-no-attends' : ''">
+						<td><strong th:text="${horarioDia.dia()}"></strong></td>
+						<td>
+							<div class="professional-schedule-tramos" th:if="${!#lists.isEmpty(horarioDia.tramos())}">
+								<span class="schedule-tramo-pill" th:each="tramo : ${horarioDia.tramos()}"
+									th:text="${tramo.desde()} + ' a ' + ${tramo.hasta()}"></span>
+							</div>
+							<span class="muted" th:if="${#lists.isEmpty(horarioDia.tramos())}">No atiende</span>
+						</td>
+						<td>
+							<span th:if="${horarioDia.agendaOnline()}" class="online-pill">Online</span>
+							<span th:unless="${horarioDia.agendaOnline()}" class="muted">-</span>
+						</td>
 					</tr>
 					</tbody>
 				</table>
@@ -277,7 +311,7 @@
 			<h3>Observaciones</h3>
 			<button class="icon-btn" type="button" onclick="closeModal(this)">×</button>
 		</div>
-		<form method="post" th:action="@{/turnos}">
+		<form method="post" th:action="@{/turnos}" data-turno-save-form>
 			<input type="hidden" name="dia">
 			<input type="hidden" name="hora">
 			<input type="hidden" name="sobreturno">
@@ -312,7 +346,7 @@
 			<h3>Paciente nuevo</h3>
 			<button class="icon-btn" type="button" onclick="closeModal(this)">×</button>
 		</div>
-		<form method="post" th:action="@{/turnos}">
+		<form method="post" th:action="@{/turnos}" data-turno-save-form>
 			<input type="hidden" name="dia">
 			<input type="hidden" name="hora">
 			<input type="hidden" name="sobreturno">
@@ -331,6 +365,9 @@
 				</label>
 				<label>Teléfono celular
 					<input name="pacienteNuevoTelefono">
+				</label>
+				<label>Email
+					<input type="email" name="pacienteNuevoEmail">
 				</label>
 				<label>Obra social
 					<select name="obraSocialId">
@@ -422,7 +459,7 @@
 			<h3>Modificar turno</h3>
 			<button class="icon-btn" type="button" onclick="closeModal(this)">×</button>
 		</div>
-		<form method="post" data-edit-turno-form>
+		<form method="post" data-edit-turno-form data-turno-save-form>
 			<div class="form-grid">
 				<label>Fecha
 					<input type="date" name="dia" required>
@@ -444,6 +481,14 @@
 				<button class="btn primary" type="submit">Guardar cambios</button>
 			</div>
 		</form>
+	</div>
+</div>
+
+<div class="turno-saving-overlay" id="turnoSavingOverlay" aria-live="polite" aria-hidden="true">
+	<div class="turno-saving-card">
+		<div class="turno-saving-spinner" aria-hidden="true"></div>
+		<strong>Guardando turno</strong>
+		<span>Guardando turno y avisando por email...</span>
 	</div>
 </div>
 </body>

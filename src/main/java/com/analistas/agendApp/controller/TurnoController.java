@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.analistas.agendApp.dto.DiaAgenda;
+import com.analistas.agendApp.dto.TurnoEmailData;
 import com.analistas.agendApp.dto.TurnoAgendaResponse;
 import com.analistas.agendApp.dto.TurnoSlot;
 import com.analistas.agendApp.model.Paciente;
@@ -33,6 +34,7 @@ import com.analistas.agendApp.repository.IProfesionalRepository;
 import com.analistas.agendApp.service.IEspecialidadService;
 import com.analistas.agendApp.service.IPacienteService;
 import com.analistas.agendApp.service.IProfesionalService;
+import com.analistas.agendApp.service.ITurnoEmailService;
 import com.analistas.agendApp.service.ITurnoService;
 import com.analistas.agendApp.service.IUsuarioService;
 
@@ -42,6 +44,8 @@ public class TurnoController {
 			.ofPattern("EEEE, d 'de' MMMM 'de' yyyy", new Locale("es", "AR"));
 	private static final DateTimeFormatter HORA_CORTA = DateTimeFormatter.ofPattern("HH:mm");
 	private static final DateTimeFormatter FECHA_CORTA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+	private static final List<String> DIAS_ATENCION = List.of(
+			"Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo");
 
 	private final ITurnoService turnoService;
 	private final IPacienteService pacienteService;
@@ -52,12 +56,13 @@ public class TurnoController {
 	private final IPlanObraSocialRepository planRepository;
 	private final IEspecialidadService especialidadService;
 	private final IUsuarioService usuarioService;
+	private final ITurnoEmailService turnoEmailService;
 
 	public TurnoController(ITurnoService turnoService, IPacienteService pacienteService,
 			IProfesionalService profesionalService, IPacienteRepository pacienteRepository,
 			IProfesionalRepository profesionalRepository, IObraSocialRepository obraSocialRepository,
 			IPlanObraSocialRepository planRepository, IEspecialidadService especialidadService,
-			IUsuarioService usuarioService) {
+			IUsuarioService usuarioService, ITurnoEmailService turnoEmailService) {
 		this.turnoService = turnoService;
 		this.pacienteService = pacienteService;
 		this.profesionalService = profesionalService;
@@ -67,6 +72,7 @@ public class TurnoController {
 		this.planRepository = planRepository;
 		this.especialidadService = especialidadService;
 		this.usuarioService = usuarioService;
+		this.turnoEmailService = turnoEmailService;
 	}
 
 	@GetMapping("/turnos")
@@ -76,6 +82,7 @@ public class TurnoController {
 		LocalDate dia = fecha == null ? LocalDate.now() : fecha;
 		var profesionales = profesionalService.habilitadosPorEspecialidad(especialidadId);
 		Long profesionalSeleccionadoId = seleccionarProfesional(profesionalId, profesionales);
+		Profesional profesionalSeleccionado = profesionalSeleccionado(profesionalSeleccionadoId);
 		model.addAttribute("fecha", dia);
 		model.addAttribute("fechaTexto", dia.format(FECHA_LARGA));
 		model.addAttribute("hoy", LocalDate.now());
@@ -84,7 +91,8 @@ public class TurnoController {
 		model.addAttribute("especialidadId", especialidadId);
 		model.addAttribute("slots", turnoService.construirAgenda(dia, profesionalSeleccionadoId));
 		model.addAttribute("profesionales", profesionales);
-		model.addAttribute("profesionalSeleccionado", profesionalSeleccionado(profesionalSeleccionadoId));
+		model.addAttribute("profesionalSeleccionado", profesionalSeleccionado);
+		model.addAttribute("horariosProfesionalResumen", resumenHorarios(profesionalSeleccionado));
 		model.addAttribute("especialidades", especialidadService.listar());
 		model.addAttribute("pacientes", pacienteService.buscar(null));
 		model.addAttribute("obrasSociales", obraSocialRepository.findByHabilitadoTrueOrderByNombreAsc());
@@ -151,23 +159,40 @@ public class TurnoController {
 			return null;
 		}
 		Profesional profesional = profesionalRepository.findById(profesionalId).orElse(null);
-		if (profesional != null) {
-			profesional.getHorarios().forEach(this::completarHorario);
-		}
 		return profesional;
 	}
 
-	private void completarHorario(ProfesionalHorario horario) {
-		if (horario.getHoraDesde() == null) {
-			horario.setHoraDesde(esFinDeSemana(horario.getDia()) ? LocalTime.of(9, 0) : LocalTime.of(8, 0));
+	private List<HorarioDiaResumen> resumenHorarios(Profesional profesional) {
+		if (profesional == null) {
+			return List.of();
 		}
-		if (horario.getHoraHasta() == null) {
-			horario.setHoraHasta(esFinDeSemana(horario.getDia()) ? LocalTime.of(20, 0) : LocalTime.of(17, 0));
-		}
+		return DIAS_ATENCION.stream()
+				.map(dia -> {
+					List<HorarioTramoResumen> tramos = profesional.getHorarios().stream()
+							.filter(horario -> dia.equals(horario.getDia()))
+							.filter(this::horarioCompleto)
+							.sorted((a, b) -> a.getHoraDesde().compareTo(b.getHoraDesde()))
+							.map(horario -> new HorarioTramoResumen(
+									horario.getHoraDesde().format(HORA_CORTA),
+									horario.getHoraHasta().format(HORA_CORTA)))
+							.toList();
+					boolean agendaOnline = profesional.getHorarios().stream()
+							.filter(horario -> dia.equals(horario.getDia()))
+							.filter(this::horarioCompleto)
+							.anyMatch(ProfesionalHorario::isAgendaOnline);
+					return new HorarioDiaResumen(dia, tramos, agendaOnline);
+				})
+				.toList();
 	}
 
-	private boolean esFinDeSemana(String dia) {
-		return "Sabado".equals(dia) || "Domingo".equals(dia);
+	private boolean horarioCompleto(ProfesionalHorario horario) {
+		return horario.getHoraDesde() != null && horario.getHoraHasta() != null;
+	}
+
+	public record HorarioDiaResumen(String dia, List<HorarioTramoResumen> tramos, boolean agendaOnline) {
+	}
+
+	public record HorarioTramoResumen(String desde, String hasta) {
 	}
 
 	private List<DiaAgenda> construirDiasSemana(LocalDate dia) {
@@ -189,19 +214,21 @@ public class TurnoController {
 			@RequestParam(required = false) String pacienteNuevoNombre,
 			@RequestParam(required = false) String pacienteNuevoDocumento,
 			@RequestParam(required = false) String pacienteNuevoTelefono,
+			@RequestParam(required = false) String pacienteNuevoEmail,
 			@RequestParam(required = false) Long obraSocialId,
 			@RequestParam(required = false) Long planId,
 			@RequestParam(required = false) String observacion,
 			@RequestParam(defaultValue = "false") boolean sobreturno,
 			RedirectAttributes redirectAttributes) {
 		try {
+			String asignadoPor = usuarioService.nombreCompletoActual();
 			Turno turno = new Turno();
 			turno.setDia(dia);
 			turno.setHora(LocalTime.parse(hora));
 			turno.setProfesional(profesionalRepository.findById(profesionalId).orElseThrow());
 			turno.setSobreturno(sobreturno);
 			turno.setObservacion(observacion);
-			turno.setDadoModificadoPor(usuarioService.nombreCompletoActual());
+			turno.setDadoModificadoPor(asignadoPor);
 			if (pacienteId != null) {
 				turno.setPaciente(pacienteRepository.findById(pacienteId).orElseThrow());
 			} else if (pacienteNuevoNombre != null && !pacienteNuevoNombre.isBlank()) {
@@ -210,13 +237,14 @@ public class TurnoController {
 				paciente.setTipoDocumento("DNI");
 				paciente.setDocumento(pacienteNuevoDocumento);
 				paciente.setTelefonoCelular(pacienteNuevoTelefono);
+				paciente.setEmail(pacienteNuevoEmail);
 				if (obraSocialId != null) {
 					paciente.setObraSocial(obraSocialRepository.findById(obraSocialId).orElse(null));
 				}
 				if (planId != null) {
 					paciente.setPlan(planRepository.findById(planId).orElse(null));
 				}
-				turno.setPaciente(pacienteService.guardar(paciente));
+				turno.setPaciente(paciente);
 			}
 			if (obraSocialId != null) {
 				turno.setObraSocial(obraSocialRepository.findById(obraSocialId).orElse(null));
@@ -228,7 +256,10 @@ public class TurnoController {
 			} else if (turno.getPaciente() != null) {
 				turno.setPlan(turno.getPaciente().getPlan());
 			}
-			turnoService.guardar(turno);
+			Turno guardado = turnoService.guardar(turno);
+			if (guardado.getPaciente() != null) {
+				turnoEmailService.notificarAsignacion(guardado, asignadoPor);
+			}
 			redirectAttributes.addFlashAttribute("ok", "Turno guardado.");
 		} catch (RuntimeException ex) {
 			redirectAttributes.addFlashAttribute("error", ex.getMessage());
@@ -251,13 +282,17 @@ public class TurnoController {
 			@RequestParam(required = false) String observacion,
 			RedirectAttributes redirectAttributes) {
 		try {
+			String modificadoPor = usuarioService.nombreCompletoActual();
 			Turno turno = turnoService.obtener(id);
 			turno.setDia(dia);
 			turno.setHora(LocalTime.parse(hora));
 			turno.setProfesional(profesionalRepository.findById(profesionalId).orElseThrow());
 			turno.setObservacion(observacion);
-			turno.setDadoModificadoPor(usuarioService.nombreCompletoActual());
-			turnoService.guardar(turno);
+			turno.setDadoModificadoPor(modificadoPor);
+			Turno guardado = turnoService.guardar(turno);
+			if (guardado.getPaciente() != null) {
+				turnoEmailService.notificarAsignacion(guardado, modificadoPor);
+			}
 			redirectAttributes.addFlashAttribute("ok", "Turno modificado.");
 		} catch (RuntimeException ex) {
 			redirectAttributes.addFlashAttribute("error", ex.getMessage());
@@ -269,7 +304,14 @@ public class TurnoController {
 	public String anular(@PathVariable Long id,
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dia,
 			@RequestParam(required = false) Long profesionalId) {
-		turnoService.anular(id, usuarioService.nombreCompletoActual());
+		String anuladoPor = usuarioService.nombreCompletoActual();
+		Turno turno = turnoService.obtener(id);
+		boolean estabaAsignado = turno.getPaciente() != null;
+		TurnoEmailData emailData = TurnoEmailData.desde(turno, anuladoPor);
+		turnoService.anular(id, anuladoPor);
+		if (estabaAsignado) {
+			turnoEmailService.notificarAnulacion(emailData);
+		}
 		return redirectTurnos(dia, profesionalId);
 	}
 

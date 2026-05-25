@@ -50,6 +50,7 @@
 			<div class="patient-summary-actions">
 				<span class="summary-badge">Sin saldo: $ <span data-patient-balance>0,00</span></span>
 				<span class="summary-badge">Sin saldo: U$S 0</span>
+				<a class="btn primary patient-edit-inline" data-patient-edit-link href="#" hidden>Editar paciente</a>
 			</div>
 		</section>
 
@@ -127,7 +128,7 @@
 			<form id="patientDeleteForm" method="post">
 				<button class="btn outline danger-outline" type="submit">Eliminar paciente</button>
 			</form>
-			<a id="patientEditLink" class="btn primary" href="#">Guardar paciente</a>
+			<a id="patientEditLink" class="btn primary" data-patient-edit-link href="#">Editar paciente</a>
 		</footer>
 	</main>
 </div>
