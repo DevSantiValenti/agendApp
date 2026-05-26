@@ -638,7 +638,9 @@ function setupWhatsappTurnoLinks() {
 			return;
 		}
 		const message = whatsappTurnoMessage(link.dataset);
-		link.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+		console.log(message);
+		console.log(encodeURIComponent(message));
+		link.href = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
 		link.removeAttribute("hidden");
 	});
 }
@@ -658,7 +660,26 @@ function whatsappTurnoMessage(data) {
 	const professional = data.whatsappProfessional || "";
 	const date = formatWhatsappDate(data.whatsappDate);
 	const hour = data.whatsappHour || "";
-	return `Hola! ${patient}, te recordamos que tienes un turno con el Dr/a ${professional} el día ${date} a las ${hour} en Av Alvear 856.`;
+
+	const emoji = {
+		hello: "\uD83D\uDC4B",
+		chat: "\uD83D\uDCAC",
+		calendar: "\uD83D\uDCC5",
+		clock: "\uD83D\uDD50",
+		hands: "\uD83D\uDE4C"
+	};
+
+	return [
+		`${emoji.hello} ¡Hola, *${patient}*!`,
+		`${emoji.chat} Te recordamos tu turno con`,
+		`*${professional}*`,
+		`${emoji.calendar} *${date}*`,
+		`${emoji.clock} *${hour} hs*`,
+		"",
+		`_Para cancelar o modificar el turno no dudes en contactarnos._`,
+		"",
+		`¡Te esperamos! ${emoji.hands}`
+	].join("\n");
 }
 
 function formatWhatsappDate(value) {
