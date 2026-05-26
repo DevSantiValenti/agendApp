@@ -18,6 +18,9 @@ import com.analistas.agendApp.model.Presentismo;
 import com.analistas.agendApp.model.Turno;
 import com.analistas.agendApp.repository.IPacienteRepository;
 import com.analistas.agendApp.repository.IProfesionalRepository;
+import com.analistas.agendApp.repository.ITurnoRepository;
+import com.analistas.agendApp.service.IPacienteService;
+import com.analistas.agendApp.service.IProfesionalService;
 import com.analistas.agendApp.service.ITurnoService;
 
 @SpringBootTest
@@ -31,6 +34,15 @@ class TurnoServiceImplTests {
 
 	@Autowired
 	private IPacienteRepository pacienteRepository;
+
+	@Autowired
+	private ITurnoRepository turnoRepository;
+
+	@Autowired
+	private IPacienteService pacienteService;
+
+	@Autowired
+	private IProfesionalService profesionalService;
 
 	@Test
 	void rechazaTurnoDuplicadoParaMismoProfesionalDiaYHora() {
@@ -151,6 +163,31 @@ class TurnoServiceImplTests {
 		assertThat(turno.getDadoModificadoPor()).isEqualTo("Administracion");
 	}
 
+	@Test
+	void eliminarPacienteEliminaSusTurnos() {
+		Profesional profesional = profesionalRepository.save(profesional("BARRIOS DALMA"));
+		Paciente paciente = pacienteRepository.save(paciente("Paciente con turno"));
+		Turno turno = turno(profesional, LocalDate.of(2026, 5, 19), LocalTime.of(11, 0), false);
+		turno.setPaciente(paciente);
+		turnoService.guardar(turno);
+
+		pacienteService.eliminar(paciente.getId());
+
+		assertThat(turnoRepository.countByPacienteId(paciente.getId())).isZero();
+		assertThat(pacienteRepository.findById(paciente.getId())).isEmpty();
+	}
+
+	@Test
+	void eliminarProfesionalEliminaSusTurnos() {
+		Profesional profesional = profesionalRepository.save(profesional("BARRIOS DALMA"));
+		turnoService.guardar(turno(profesional, LocalDate.of(2026, 5, 19), LocalTime.of(11, 0), false));
+
+		profesionalService.eliminar(profesional.getId());
+
+		assertThat(turnoRepository.countByProfesionalId(profesional.getId())).isZero();
+		assertThat(profesionalRepository.findById(profesional.getId())).isEmpty();
+	}
+
 	private Profesional profesional(String nombre) {
 		return profesional(nombre, horario("Martes", LocalTime.of(8, 0), LocalTime.of(20, 0)));
 	}
@@ -181,5 +218,11 @@ class TurnoServiceImplTests {
 		turno.setHora(hora);
 		turno.setSobreturno(sobreturno);
 		return turno;
+	}
+
+	private Paciente paciente(String nombre) {
+		Paciente paciente = new Paciente();
+		paciente.setNombreCompleto(nombre);
+		return paciente;
 	}
 }

@@ -18,4 +18,12 @@ public interface ITurnoRepository extends JpaRepository<Turno, Long> {
 	List<Turno> findByDiaAndProfesionalIdOrderByHoraAsc(LocalDate dia, Long profesionalId);
 
 	Optional<Turno> findFirstByDiaAndHoraAndProfesionalIdAndSobreturnoFalse(LocalDate dia, LocalTime hora, Long profesionalId);
+
+	long countByPacienteId(Long pacienteId);
+
+	long countByProfesionalId(Long profesionalId);
+
+	long deleteByPacienteId(Long pacienteId);
+
+	long deleteByProfesionalId(Long profesionalId);
 }

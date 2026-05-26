@@ -3,17 +3,21 @@ package com.analistas.agendApp.service.impl;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.analistas.agendApp.model.Profesional;
 import com.analistas.agendApp.repository.IProfesionalRepository;
+import com.analistas.agendApp.repository.ITurnoRepository;
 import com.analistas.agendApp.service.IProfesionalService;
 
 @Service
 public class ProfesionalServiceImpl implements IProfesionalService {
 	private final IProfesionalRepository profesionalRepository;
+	private final ITurnoRepository turnoRepository;
 
-	public ProfesionalServiceImpl(IProfesionalRepository profesionalRepository) {
+	public ProfesionalServiceImpl(IProfesionalRepository profesionalRepository, ITurnoRepository turnoRepository) {
 		this.profesionalRepository = profesionalRepository;
+		this.turnoRepository = turnoRepository;
 	}
 
 	@Override
@@ -42,8 +46,11 @@ public class ProfesionalServiceImpl implements IProfesionalService {
 	}
 
 	@Override
+	@Transactional
 	public void eliminar(Long id) {
-		profesionalRepository.deleteById(id);
+		Profesional profesional = obtener(id);
+		turnoRepository.deleteByProfesionalId(id);
+		profesionalRepository.delete(profesional);
 	}
 
 	private String blankToNull(String value) {

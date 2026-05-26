@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.analistas.agendApp.dto.PacienteDetalle;
 import com.analistas.agendApp.dto.PacienteSearchResult;
@@ -76,8 +77,13 @@ public class PacienteController {
 	}
 
 	@PostMapping("/pacientes/{id}/eliminar")
-	public String eliminar(@PathVariable Long id) {
-		pacienteService.eliminar(id);
+	public String eliminar(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+		try {
+			pacienteService.eliminar(id);
+			redirectAttributes.addFlashAttribute("ok", "Paciente eliminado.");
+		} catch (RuntimeException ex) {
+			redirectAttributes.addFlashAttribute("error", "No se pudo eliminar el paciente.");
+		}
 		return "redirect:/pacientes";
 	}
 
